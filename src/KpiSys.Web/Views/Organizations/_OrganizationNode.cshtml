@@ -1,0 +1,28 @@
+@model KpiSys.Web.Models.OrganizationNode
+<li class="mb-2">
+    <div class="d-flex align-items-center">
+        <button type="button" class="btn btn-sm btn-link text-decoration-none toggle me-2">▸</button>
+        <div class="flex-grow-1">
+            <div class="fw-semibold">@Model.Node.OrgName <span class="text-muted">(@Model.Node.OrgId)</span></div>
+            <div class="text-muted small">Level @Model.Node.OrgLevel @if (!string.IsNullOrWhiteSpace(Model.Node.ParentOrgId)) { <text>| 上層: @Model.Node.ParentOrgId</text> }</div>
+        </div>
+        <div class="ms-2">
+            <a class="btn btn-outline-primary btn-sm" asp-action="Edit" asp-route-id="@Model.Node.OrgId">編輯</a>
+        </div>
+        <div class="ms-2">
+            <form asp-action="Delete" asp-route-id="@Model.Node.OrgId" method="post" onsubmit="return confirm('確定刪除?');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger btn-sm">刪除</button>
+            </form>
+        </div>
+    </div>
+    @if (Model.Children.Any())
+    {
+        <ul class="list-unstyled ms-4 mt-2 d-none">
+            @foreach (var child in Model.Children)
+            {
+                @Html.Partial("_OrganizationNode", child)
+            }
+        </ul>
+    }
+</li>

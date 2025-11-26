@@ -1,0 +1,51 @@
+@model KpiSys.Web.Models.Organization
+@{
+    ViewData["Title"] = "編輯組織";
+    var organizations = ViewBag.Organizations as IEnumerable<KpiSys.Web.Models.Organization> ?? Array.Empty<KpiSys.Web.Models.Organization>();
+}
+
+<div class="mb-4">
+    <h1 class="h3">編輯組織節點</h1>
+    <p class="text-muted">更新組織名稱、階層與父節點。</p>
+</div>
+
+<form asp-action="Edit" asp-route-id="@Model.OrgId" method="post" class="card shadow-sm">
+    @Html.AntiForgeryToken()
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="OrgId" class="form-label"></label>
+                <input asp-for="OrgId" class="form-control" readonly />
+            </div>
+            <div class="col-md-6">
+                <label asp-for="OrgName" class="form-label"></label>
+                <input asp-for="OrgName" class="form-control" />
+                <span asp-validation-for="OrgName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ParentOrgId" class="form-label">上層組織</label>
+                <select asp-for="ParentOrgId" class="form-select">
+                    <option value="">(無)</option>
+                    @foreach (var org in organizations)
+                    {
+                        <option value="@org.OrgId" selected="@(Model.ParentOrgId == org.OrgId)">@org.OrgId - @org.OrgName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="OrgLevel" class="form-label"></label>
+                <input asp-for="OrgLevel" class="form-control" />
+                <span asp-validation-for="OrgLevel" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">回列表</a>
+        <button type="submit" class="btn btn-primary">儲存</button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

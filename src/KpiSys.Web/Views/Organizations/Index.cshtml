@@ -1,0 +1,111 @@
+@model KpiSys.Web.Models.OrganizationIndexViewModel
+@{
+    ViewData["Title"] = "組織管理";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">組織管理</h1>
+        <p class="text-muted mb-0">建立組織階層供後續權限與工時審核使用</p>
+    </div>
+    <div class="ms-auto">
+        <a class="btn btn-outline-secondary" asp-action="Index">重新整理</a>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">組織清單</div>
+            <div class="card-body">
+                @if (Model.Tree.Count == 0)
+                {
+                    <p class="text-muted">尚未建立任何組織。</p>
+                }
+                else
+                {
+                    <div class="small text-muted mb-2">點擊節點即可展開/收合</div>
+                    <ul class="list-unstyled" id="org-tree">
+                        @foreach (var node in Model.Tree)
+                        {
+                            @Html.Partial("_OrganizationNode", node)
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold">新增組織節點</div>
+            <div class="card-body">
+                <form asp-action="Create" method="post" class="row g-3">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="col-md-6">
+                        <label asp-for="NewOrganization.OrgId" class="form-label"></label>
+                        <input asp-for="NewOrganization.OrgId" name="OrgId" class="form-control" />
+                        <span asp-validation-for="NewOrganization.OrgId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="NewOrganization.OrgName" class="form-label"></label>
+                        <input asp-for="NewOrganization.OrgName" name="OrgName" class="form-control" />
+                        <span asp-validation-for="NewOrganization.OrgName" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="NewOrganization.ParentOrgId" class="form-label">上層組織</label>
+                        <select asp-for="NewOrganization.ParentOrgId" name="ParentOrgId" class="form-select">
+                            <option value="">(無)</option>
+                            @foreach (var org in Model.Tree.SelectMany(t => Flatten(t)))
+                            {
+                                <option value="@org.OrgId">@org.OrgId - @org.OrgName</option>
+                            }
+                        </select>
+                        <span asp-validation-for="NewOrganization.ParentOrgId" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="NewOrganization.OrgLevel" class="form-label">層級</label>
+                        <input asp-for="NewOrganization.OrgLevel" name="OrgLevel" class="form-control" placeholder="若留空將自動計算" />
+                        <span asp-validation-for="NewOrganization.OrgLevel" class="text-danger"></span>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">新增組織</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    IEnumerable<KpiSys.Web.Models.Organization> Flatten(KpiSys.Web.Models.OrganizationNode node)
+    {
+        yield return node.Node;
+        foreach (var child in node.Children)
+        {
+            foreach (var nested in Flatten(child))
+            {
+                yield return nested;
+            }
+        }
+    }
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('#org-tree li .toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const list = btn.closest('li').querySelector(':scope > ul');
+                if (list) {
+                    list.classList.toggle('d-none');
+                }
+            });
+        });
+    </script>
+}

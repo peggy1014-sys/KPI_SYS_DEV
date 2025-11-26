@@ -1,71 +1,107 @@
+@model KpiSys.Web.Models.EmployeeListViewModel
 @{
     ViewData["Title"] = "員工管理";
 }
 
-<div class="page-header mb-4">
-    <h1 class="h3 mb-1">員工管理</h1>
-    <p class="text-muted">管理系統中的所有員工資訊</p>
+<div class="d-flex align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">員工管理</h1>
+        <p class="text-muted mb-0">維護員工、主管、組織與職稱資料</p>
+    </div>
+    <div class="ms-auto">
+        <a class="btn btn-primary" asp-action="Create">新增員工</a>
+    </div>
 </div>
 
-<div class="mb-4">
-    <form class="search-box" role="search">
-        <div class="input-group">
-            <span class="input-group-text bg-white border-end-0">🔎</span>
-            <input type="search" class="form-control border-start-0" placeholder="搜尋員工編號、姓名或電子郵件…" aria-label="搜尋員工" />
-        </div>
-    </form>
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">員工編號</label>
+                <input name="EmployeeNo" value="@Model.Filter.EmployeeNo" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">姓名</label>
+                <input name="Name" value="@Model.Filter.Name" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">部門</label>
+                <select name="OrgId" class="form-select">
+                    <option value="">(全部)</option>
+                    @foreach (var org in Model.Organizations)
+                    {
+                        <option value="@org.OrgId" selected="@(Model.Filter.OrgId == org.OrgId)">@org.OrgName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">職稱</label>
+                <input name="Title" value="@Model.Filter.Title" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">主管</label>
+                <select name="ManagerId" class="form-select">
+                    <option value="">(全部)</option>
+                    @foreach (var manager in Model.Managers)
+                    {
+                        <option value="@manager.Id" selected="@(Model.Filter.ManagerId == manager.Id)">@manager.Name (@manager.EmployeeNo)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+                <button type="submit" class="btn btn-outline-primary me-2">查詢</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">清除</a>
+            </div>
+        </form>
+    </div>
 </div>
 
-<div class="card shadow-sm border-0 mb-4">
+<div class="card shadow-sm mb-4">
     <div class="table-responsive">
         <table class="table align-middle mb-0">
             <thead>
                 <tr>
                     <th>員工編號</th>
                     <th>姓名</th>
-                    <th>電子郵件</th>
-                    <th>組織</th>
-                    <th>職位</th>
+                    <th>Email</th>
+                    <th>部門</th>
+                    <th>職稱</th>
+                    <th>主管</th>
                     <th class="text-center">操作</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>EMP-001</td>
-                    <td>王小明</td>
-                    <td>ming.wang@example.com</td>
-                    <td>產品部</td>
-                    <td>產品經理</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
-                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
-                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>EMP-002</td>
-                    <td>林美美</td>
-                    <td>mei.lin@example.com</td>
-                    <td>研發部</td>
-                    <td>資深工程師</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
-                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
-                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td>EMP-003</td>
-                    <td>陳大華</td>
-                    <td>dahua.chen@example.com</td>
-                    <td>設計部</td>
-                    <td>UI/UX 設計師</td>
-                    <td class="text-center">
-                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
-                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
-                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
-                    </td>
-                </tr>
+                @if (!Model.Employees.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted">查無資料</td></tr>
+                }
+                else
+                {
+                    foreach (var employee in Model.Employees)
+                    {
+                        <tr>
+                            <td>@employee.EmployeeNo</td>
+                            <td>@employee.Name</td>
+                            <td>@employee.Email</td>
+                            <td>@employee.Organization</td>
+                            <td>@employee.Title</td>
+                            <td>@employee.Manager</td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@employee.Id">編輯</a>
+                                <a class="btn btn-sm btn-outline-secondary me-1" asp-action="Details" asp-route-id="@employee.Id">職能管理</a>
+                                <form asp-action="Delete" asp-route-id="@employee.Id" method="post" class="d-inline" onsubmit="return confirm('確定刪除?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
             </tbody>
         </table>
     </div>
@@ -75,22 +111,22 @@
     <div class="col-md-4">
         <div class="stat-card h-100">
             <div class="label">總員工數</div>
-            <div class="value">128</div>
-            <div class="text-muted small">含全職與兼職人員</div>
+            <div class="value">@Model.TotalEmployees</div>
+            <div class="text-muted small">包含全部狀態</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="stat-card h-100">
             <div class="label">部門數</div>
-            <div class="value">12</div>
-            <div class="text-muted small">跨職能、專案與支援部門</div>
+            <div class="value">@Model.DepartmentCount</div>
+            <div class="text-muted small">依組織節點計算</div>
         </div>
     </div>
     <div class="col-md-4">
         <div class="stat-card h-100">
             <div class="label">搜尋結果筆數</div>
-            <div class="value">3</div>
-            <div class="text-muted small">依目前搜尋條件顯示</div>
+            <div class="value">@Model.SearchResultCount</div>
+            <div class="text-muted small">依目前篩選條件</div>
         </div>
     </div>
 </div>
