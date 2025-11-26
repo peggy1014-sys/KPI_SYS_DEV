@@ -1,0 +1,49 @@
+@model KpiSys.Web.Models.OrganizationTreeNodeViewModel
+@{
+    var hasChildren = Model.Children.Any() || Model.Employees.Any();
+}
+<li class="mb-2">
+    <div class="d-flex align-items-start">
+        @if (hasChildren)
+        {
+            <button type="button" class="btn btn-sm btn-link text-decoration-none toggle me-2">▸</button>
+        }
+        else
+        {
+            <span class="me-3 text-muted">•</span>
+        }
+        <div class="flex-grow-1">
+            <div class="fw-semibold">@Model.Organization.OrgName <span class="text-muted">(@Model.Organization.OrgId)</span></div>
+            <div class="text-muted small">
+                層級 @Model.Organization.OrgLevel
+                @if (!string.IsNullOrWhiteSpace(Model.Organization.ParentOrgId))
+                {
+                    <text>| 上層 @Model.Organization.ParentOrgId</text>
+                }
+                @if (Model.Employees.Any())
+                {
+                    <text>| 員工 @Model.Employees.Count 位</text>
+                }
+            </div>
+        </div>
+    </div>
+    @if (hasChildren)
+    {
+        <ul class="list-unstyled ms-4 mt-2 d-none">
+            @foreach (var child in Model.Children)
+            {
+                @Html.Partial("_OrganizationBrowseNode", child)
+            }
+            @foreach (var emp in Model.Employees)
+            {
+                <li class="mb-2 d-flex align-items-start">
+                    <span class="me-2">👤</span>
+                    <div>
+                        <div class="fw-semibold">@emp.EmployeeNo - @emp.Name</div>
+                        <div class="text-muted small">@emp.Title</div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</li>
