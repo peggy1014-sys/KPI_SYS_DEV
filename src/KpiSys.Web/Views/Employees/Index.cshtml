@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "員工管理";
+}
+
+<div class="page-header mb-4">
+    <h1 class="h3 mb-1">員工管理</h1>
+    <p class="text-muted">管理系統中的所有員工資訊</p>
+</div>
+
+<div class="mb-4">
+    <form class="search-box" role="search">
+        <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">🔎</span>
+            <input type="search" class="form-control border-start-0" placeholder="搜尋員工編號、姓名或電子郵件…" aria-label="搜尋員工" />
+        </div>
+    </form>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>員工編號</th>
+                    <th>姓名</th>
+                    <th>電子郵件</th>
+                    <th>組織</th>
+                    <th>職位</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>EMP-001</td>
+                    <td>王小明</td>
+                    <td>ming.wang@example.com</td>
+                    <td>產品部</td>
+                    <td>產品經理</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
+                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
+                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>EMP-002</td>
+                    <td>林美美</td>
+                    <td>mei.lin@example.com</td>
+                    <td>研發部</td>
+                    <td>資深工程師</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
+                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
+                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>EMP-003</td>
+                    <td>陳大華</td>
+                    <td>dahua.chen@example.com</td>
+                    <td>設計部</td>
+                    <td>UI/UX 設計師</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-2">編輯</button>
+                        <button class="btn btn-sm btn-outline-danger me-2">刪除</button>
+                        <button class="btn btn-sm btn-outline-secondary">職能管理</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="stat-card h-100">
+            <div class="label">總員工數</div>
+            <div class="value">128</div>
+            <div class="text-muted small">含全職與兼職人員</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card h-100">
+            <div class="label">部門數</div>
+            <div class="value">12</div>
+            <div class="text-muted small">跨職能、專案與支援部門</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card h-100">
+            <div class="label">搜尋結果筆數</div>
+            <div class="value">3</div>
+            <div class="text-muted small">依目前搜尋條件顯示</div>
+        </div>
+    </div>
+</div>

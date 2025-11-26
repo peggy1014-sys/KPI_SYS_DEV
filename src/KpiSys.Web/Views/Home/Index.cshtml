@@ -1,9 +1,55 @@
 @{
-    ViewData["Title"] = "首頁";
+    ViewData["Title"] = "儀表板";
 }
 
-<div class="text-center">
-    <h1 class="display-4">歡迎使用 KPI 管理系統</h1>
-    <p class="lead">根據《績效管理系統 系統分析V1》與《績效管理系統三階段功能開發細節順序》的需求，這裡是 MVC 架構的起點。</p>
-    <p>請依據後續階段計畫持續擴充控制器、檢視與設定。</p>
+<div class="page-header mb-4">
+    <h1 class="h3 mb-1">專案工時KPI績效管理系統</h1>
+    <p class="text-muted">集中管理專案、工時與人員資料，協助追蹤績效指標並優化團隊產能。</p>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6 col-lg-3">
+        <a href="/employees" class="card-link">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-2">👥</div>
+                    <h5 class="card-title mb-2">員工管理</h5>
+                    <p class="card-text text-muted small mb-0">維護人員資料、職能與組織隸屬關係。</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a href="/codes" class="card-link">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-2">🧩</div>
+                    <h5 class="card-title mb-2">代碼管理</h5>
+                    <p class="card-text text-muted small mb-0">設定系統所需代碼與分類，確保資料一致性。</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a href="/projects" class="card-link">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-2">📁</div>
+                    <h5 class="card-title mb-2">專案管理</h5>
+                    <p class="card-text text-muted small mb-0">管理專案資訊、進度與所屬團隊。</p>
+                </div>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <a href="/timesheets" class="card-link">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-primary mb-2">🕒</div>
+                    <h5 class="card-title mb-2">工時填報</h5>
+                    <p class="card-text text-muted small mb-0">填寫與稽核工時紀錄，掌握人力投入與成本。</p>
+                </div>
+            </div>
+        </a>
+    </div>
 </div>
