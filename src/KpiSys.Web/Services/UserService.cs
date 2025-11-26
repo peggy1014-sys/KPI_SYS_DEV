@@ -136,8 +136,8 @@ public class UserService : IUserService
         var seedUsers = new List<UserAccount>
         {
             new() { Name = "系統管理員", Email = "admin@example.com", Role = "Admin", Password = "admin123", EmployeeId = _employeeService.GetAll().FirstOrDefault()?.Id },
-            new() { Name = "審核主管", Email = "manager@example.com", Role = "Manager", Password = "manager123" },
-            new() { Name = "專案經理", Email = "pm@example.com", Role = "PM", Password = "pm12345" },
+            new() { Name = "審核主管", Email = "manager@example.com", Role = "Manager", Password = "manager123", EmployeeId = _employeeService.GetAll().FirstOrDefault()?.Id },
+            new() { Name = "專案經理", Email = "pm@example.com", Role = "PM", Password = "pm12345", EmployeeId = _employeeService.GetAll().FirstOrDefault()?.Id },
             new() { Name = "一般員工", Email = "staff@example.com", Role = "Employee", Password = "staff123", EmployeeId = _employeeService.GetAll().Skip(1).FirstOrDefault()?.Id },
         };
 

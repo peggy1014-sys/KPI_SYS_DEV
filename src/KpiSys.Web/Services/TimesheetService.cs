@@ -12,6 +12,9 @@ public interface ITimesheetService
     (bool success, string? error) Create(TimesheetEntry entry);
     (bool success, string? error) Update(int id, TimesheetEntry updated, int actorEmployeeId);
     (bool success, string? error) Submit(int id, int actorEmployeeId);
+    IReadOnlyList<TimesheetEntry> GetSubmittedForReview(TimesheetReviewFilter filter);
+    (bool success, string? error) Approve(int id, int actorEmployeeId, string actorRole, string? remarks);
+    (bool success, string? error) Reject(int id, int actorEmployeeId, string actorRole, string? remarks);
     IReadOnlyList<TimesheetAudit> GetAudits(int timesheetId);
 }
 
@@ -19,18 +22,22 @@ public class TimesheetService : ITimesheetService
 {
     private const string StatusDraft = "Draft";
     private const string StatusSubmitted = "Submitted";
+    private const string StatusApproved = "Approved";
+    private const string StatusRejected = "Rejected";
 
     private readonly ConcurrentDictionary<int, TimesheetEntry> _timesheets = new();
     private readonly ConcurrentDictionary<int, List<TimesheetAudit>> _audits = new();
     private readonly IProjectService _projectService;
     private readonly ITaskService _taskService;
+    private readonly IEmployeeService _employeeService;
     private int _timesheetId;
     private int _auditId;
 
-    public TimesheetService(IProjectService projectService, ITaskService taskService)
+    public TimesheetService(IProjectService projectService, ITaskService taskService, IEmployeeService employeeService)
     {
         _projectService = projectService;
         _taskService = taskService;
+        _employeeService = employeeService;
     }
 
     public IReadOnlyList<TimesheetEntry> GetByEmployeeAndRange(int employeeId, DateTime start, DateTime end)
@@ -112,7 +119,93 @@ public class TimesheetService : ITimesheetService
         existing.Status = StatusSubmitted;
         existing.SubmittedAt = DateTime.Now;
         _timesheets[id] = Clone(existing);
-        AddAudit(id, actorEmployeeId, "Submit");
+        AddAudit(id, actorEmployeeId, "Submit", null);
+        return (true, null);
+    }
+
+    public IReadOnlyList<TimesheetEntry> GetSubmittedForReview(TimesheetReviewFilter filter)
+    {
+        var query = _timesheets.Values.Where(t => string.Equals(t.Status, StatusSubmitted, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filter.ProjectCode))
+        {
+            query = query.Where(t => string.Equals(t.ProjectCode, filter.ProjectCode, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.EmployeeId.HasValue)
+        {
+            query = query.Where(t => t.EmployeeId == filter.EmployeeId.Value);
+        }
+
+        if (filter.StartDate.HasValue)
+        {
+            query = query.Where(t => t.WorkDate.Date >= filter.StartDate.Value.Date);
+        }
+
+        if (filter.EndDate.HasValue)
+        {
+            query = query.Where(t => t.WorkDate.Date <= filter.EndDate.Value.Date);
+        }
+
+        query = query.Where(t => CanReview(t, filter.ReviewerEmployeeId, filter.ReviewerRole));
+
+        return query
+            .OrderBy(t => t.WorkDate)
+            .ThenBy(t => t.ProjectCode)
+            .ThenBy(t => t.TaskId ?? int.MaxValue)
+            .Select(Clone)
+            .ToList();
+    }
+
+    public (bool success, string? error) Approve(int id, int actorEmployeeId, string actorRole, string? remarks)
+    {
+        if (!_timesheets.TryGetValue(id, out var existing))
+        {
+            return (false, "找不到工時");
+        }
+
+        if (!string.Equals(existing.Status, StatusSubmitted, StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, "僅能審核已提交工時");
+        }
+
+        if (!CanReview(existing, actorEmployeeId, actorRole))
+        {
+            return (false, "無審核權限");
+        }
+
+        existing.Status = StatusApproved;
+        existing.ApproverId = actorEmployeeId;
+        existing.ApprovedAt = DateTime.Now;
+        existing.ApprovalRemarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
+        _timesheets[id] = Clone(existing);
+        AddAudit(id, actorEmployeeId, "Approve", existing.ApprovalRemarks);
+        return (true, null);
+    }
+
+    public (bool success, string? error) Reject(int id, int actorEmployeeId, string actorRole, string? remarks)
+    {
+        if (!_timesheets.TryGetValue(id, out var existing))
+        {
+            return (false, "找不到工時");
+        }
+
+        if (!string.Equals(existing.Status, StatusSubmitted, StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, "僅能審核已提交工時");
+        }
+
+        if (!CanReview(existing, actorEmployeeId, actorRole))
+        {
+            return (false, "無審核權限");
+        }
+
+        existing.Status = StatusRejected;
+        existing.ApproverId = actorEmployeeId;
+        existing.ApprovedAt = DateTime.Now;
+        existing.ApprovalRemarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
+        _timesheets[id] = Clone(existing);
+        AddAudit(id, actorEmployeeId, "Reject", existing.ApprovalRemarks);
         return (true, null);
     }
 
@@ -195,7 +288,44 @@ public class TimesheetService : ITimesheetService
         return (true, null);
     }
 
-    private void AddAudit(int timesheetId, int actorEmployeeId, string action)
+    private bool CanReview(TimesheetEntry entry, int reviewerEmployeeId, string reviewerRole)
+    {
+        var employee = _employeeService.GetById(entry.EmployeeId);
+        if (employee == null)
+        {
+            return false;
+        }
+
+        if (string.Equals(reviewerRole, "Manager", StringComparison.OrdinalIgnoreCase))
+        {
+            var reviewer = _employeeService.GetById(reviewerEmployeeId);
+            if (reviewer == null)
+            {
+                return false;
+            }
+
+            if (employee.ManagerId == reviewerEmployeeId)
+            {
+                return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(reviewer.OrgId)
+                && string.Equals(employee.OrgId, reviewer.OrgId, StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (string.Equals(reviewerRole, "PM", StringComparison.OrdinalIgnoreCase))
+        {
+            var project = _projectService.GetByCode(entry.ProjectCode);
+            if (project?.PmId == reviewerEmployeeId)
+            {
+                return _projectService.GetMembers(entry.ProjectCode).Any(m => m.EmployeeId == entry.EmployeeId);
+            }
+        }
+
+        return false;
+    }
+
+    private void AddAudit(int timesheetId, int actorEmployeeId, string action, string? notes)
     {
         var audit = new TimesheetAudit
         {
@@ -204,6 +334,7 @@ public class TimesheetService : ITimesheetService
             Action = action,
             PerformedBy = actorEmployeeId,
             PerformedAt = DateTime.Now,
+            Notes = notes
         };
 
         var list = _audits.GetOrAdd(timesheetId, _ => new List<TimesheetAudit>());
@@ -222,7 +353,10 @@ public class TimesheetService : ITimesheetService
             Hours = entry.Hours,
             OvertimeHours = entry.OvertimeHours,
             Status = entry.Status,
-            SubmittedAt = entry.SubmittedAt
+            SubmittedAt = entry.SubmittedAt,
+            ApproverId = entry.ApproverId,
+            ApprovedAt = entry.ApprovedAt,
+            ApprovalRemarks = entry.ApprovalRemarks
         };
     }
 

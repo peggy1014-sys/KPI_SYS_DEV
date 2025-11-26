@@ -32,6 +32,12 @@ public class TimesheetEntry
     public string Status { get; set; } = "Draft";
 
     public DateTime? SubmittedAt { get; set; }
+
+    public int? ApproverId { get; set; }
+
+    public DateTime? ApprovedAt { get; set; }
+
+    public string? ApprovalRemarks { get; set; }
 }
 
 public class TimesheetAudit
@@ -124,4 +130,58 @@ public class TimesheetFormViewModel : IValidatableObject
             yield return new ValidationResult("工時與加班不可同時為 0", new[] { nameof(Hours), nameof(OvertimeHours) });
         }
     }
+}
+
+public class TimesheetReviewFilter
+{
+    public string? ProjectCode { get; set; }
+
+    public int? EmployeeId { get; set; }
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
+    public int ReviewerEmployeeId { get; set; }
+
+    public string ReviewerRole { get; set; } = string.Empty;
+}
+
+public class TimesheetApprovalListItem
+{
+    public int Id { get; set; }
+    public DateTime WorkDate { get; set; }
+    public string ProjectCode { get; set; } = string.Empty;
+    public string ProjectName { get; set; } = string.Empty;
+    public string EmployeeName { get; set; } = string.Empty;
+    public string EmployeeOrg { get; set; } = string.Empty;
+    public decimal Hours { get; set; }
+    public decimal OvertimeHours { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTime? SubmittedAt { get; set; }
+    public string? ApprovalRemarks { get; set; }
+}
+
+public class TimesheetApprovalFilterViewModel
+{
+    public string? ProjectCode { get; set; }
+
+    public int? EmployeeId { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime? StartDate { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime? EndDate { get; set; }
+}
+
+public class TimesheetApprovalListViewModel
+{
+    public TimesheetApprovalFilterViewModel Filter { get; set; } = new();
+
+    public List<TimesheetApprovalListItem> Entries { get; set; } = new();
+
+    public List<Project> Projects { get; set; } = new();
+
+    public List<Employee> Employees { get; set; } = new();
 }

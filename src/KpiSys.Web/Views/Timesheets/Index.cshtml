@@ -70,9 +70,17 @@
                             <td class="text-end">@item.Hours</td>
                             <td class="text-end">@item.OvertimeHours</td>
                             <td>
-                                @if (item.Status.Equals("Submitted", StringComparison.OrdinalIgnoreCase))
+                                @if (item.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <span class="badge bg-success">已提交</span>
+                                    <span class="badge bg-success">已批准</span>
+                                }
+                                else if (item.Status.Equals("Rejected", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-danger">已駁回</span>
+                                }
+                                else if (item.Status.Equals("Submitted", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-info">已提交</span>
                                 }
                                 else
                                 {
@@ -80,13 +88,17 @@
                                 }
                             </td>
                             <td class="text-center">
-                                <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@item.Id">編輯</a>
                                 @if (item.CanSubmit)
                                 {
+                                    <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@item.Id">編輯</a>
                                     <form asp-action="Submit" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('提交後將送出審核，確定提交？');">
                                         @Html.AntiForgeryToken()
                                         <button type="submit" class="btn btn-sm btn-success">提交</button>
                                     </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">不可編輯</span>
                                 }
                             </td>
                         </tr>
