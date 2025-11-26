@@ -11,6 +11,8 @@ public interface IProjectService
     (bool success, string? error) Create(Project project);
     (bool success, string? error) Update(string code, Project updated);
     IReadOnlyList<ProjectMember> GetMembers(string projectCode);
+    (bool success, string? error) AddMember(string projectCode, ProjectMember member);
+    (bool success, string? error) RemoveMember(string projectCode, int memberId);
 }
 
 public class ProjectService : IProjectService
@@ -123,6 +125,44 @@ public class ProjectService : IProjectService
         return Array.Empty<ProjectMember>();
     }
 
+    public (bool success, string? error) AddMember(string projectCode, ProjectMember member)
+    {
+        if (!_projects.ContainsKey(projectCode))
+        {
+            return (false, "找不到專案");
+        }
+
+        var validation = ValidateMember(member);
+        if (!validation.success)
+        {
+            return validation;
+        }
+
+        var members = _projectMembers.GetOrAdd(projectCode, _ => new List<ProjectMember>());
+        member.Id = Interlocked.Increment(ref _projectMemberId);
+        member.ProjectCode = projectCode;
+        member.Role = member.Role.ToUpperInvariant();
+        members.Add(Clone(member));
+        return (true, null);
+    }
+
+    public (bool success, string? error) RemoveMember(string projectCode, int memberId)
+    {
+        if (!_projectMembers.TryGetValue(projectCode, out var members))
+        {
+            return (false, "找不到專案成員");
+        }
+
+        var existing = members.FirstOrDefault(m => m.Id == memberId);
+        if (existing == null)
+        {
+            return (false, "找不到專案成員");
+        }
+
+        members.Remove(existing);
+        return (true, null);
+    }
+
     private (bool success, string? error) Validate(Project project, string? updatingCode)
     {
         if (string.IsNullOrWhiteSpace(project.Code))
@@ -169,6 +209,37 @@ public class ProjectService : IProjectService
         if (project.PmId.HasValue && _employeeService.GetById(project.PmId.Value) == null)
         {
             return (false, "PM 不存在於員工清單");
+        }
+
+        return (true, null);
+    }
+
+    private (bool success, string? error) ValidateMember(ProjectMember member)
+    {
+        if (string.IsNullOrWhiteSpace(member.Role))
+        {
+            return (false, "角色必填");
+        }
+
+        var allowedRoles = new[] { "PM", "SA", "SD", "PG", "OP" };
+        if (!allowedRoles.Contains(member.Role, StringComparer.OrdinalIgnoreCase))
+        {
+            return (false, "角色代碼不正確");
+        }
+
+        if (_employeeService.GetById(member.EmployeeId) == null)
+        {
+            return (false, "員工不存在");
+        }
+
+        if (member.AllocationPct is < 0 or > 100)
+        {
+            return (false, "分配比例需介於 0 到 100 之間");
+        }
+
+        if (member.StartDate.HasValue && member.EndDate.HasValue && member.StartDate > member.EndDate)
+        {
+            return (false, "生效日期不得晚於失效日期");
         }
 
         return (true, null);
@@ -229,7 +300,9 @@ public class ProjectService : IProjectService
             EmployeeId = member.EmployeeId,
             Role = member.Role,
             AllocationPct = member.AllocationPct,
-            IsActive = member.IsActive
+            IsActive = member.IsActive,
+            StartDate = member.StartDate,
+            EndDate = member.EndDate
         };
     }
 

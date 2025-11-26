@@ -56,6 +56,51 @@ public class ProjectMember
     public string Role { get; set; } = string.Empty;
     public decimal AllocationPct { get; set; } = 100;
     public bool IsActive { get; set; } = true;
+
+    [DataType(DataType.Date)]
+    public DateTime? StartDate { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime? EndDate { get; set; }
+}
+
+public class ProjectMemberInput
+{
+    [Required]
+    public string ProjectCode { get; set; } = string.Empty;
+
+    [Required]
+    [Display(Name = "員工")]
+    public int EmployeeId { get; set; }
+
+    [Required]
+    [Display(Name = "角色")]
+    public string Role { get; set; } = string.Empty;
+
+    [Display(Name = "分配比例")]
+    [Range(0, 100, ErrorMessage = "分配比例需介於 0 到 100 之間")]
+    public decimal AllocationPct { get; set; } = 100;
+
+    [DataType(DataType.Date)]
+    [Display(Name = "生效日期")]
+    public DateTime? StartDate { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "失效日期")]
+    public DateTime? EndDate { get; set; }
+}
+
+public class ProjectMemberViewModel
+{
+    public int Id { get; set; }
+    public string ProjectCode { get; set; } = string.Empty;
+    public int EmployeeId { get; set; }
+    public string EmployeeNo { get; set; } = string.Empty;
+    public string EmployeeName { get; set; } = string.Empty;
+    public string Role { get; set; } = string.Empty;
+    public decimal AllocationPct { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
 }
 
 public class ProjectFilter
@@ -137,4 +182,6 @@ public class ProjectFormViewModel
     public IReadOnlyCollection<CodeItem> Portfolios { get; set; } = Array.Empty<CodeItem>();
     public IReadOnlyCollection<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
     public List<Employee> Employees { get; set; } = new();
+    public List<ProjectMemberViewModel> Members { get; set; } = new();
+    public ProjectMemberInput NewMember { get; set; } = new();
 }

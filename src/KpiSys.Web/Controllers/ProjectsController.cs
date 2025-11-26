@@ -76,23 +76,7 @@ public class ProjectsController : Controller
             return NotFound();
         }
 
-        var model = new ProjectFormViewModel
-        {
-            OriginalCode = project.Code,
-            Code = project.Code,
-            Name = project.Name,
-            ProjectType = project.ProjectType,
-            ProjectSize = project.ProjectSize,
-            ProjectCriticality = project.ProjectCriticality,
-            Portfolio = project.Portfolio,
-            PmId = project.PmId,
-            StartDate = project.StartDate,
-            EndDate = project.EndDate,
-            Status = project.Status,
-            Description = project.Description
-        };
-
-        return View(BuildFormModel(model));
+        return View(BuildFormModel(ToFormModel(project)));
     }
 
     [HttpPost]
@@ -114,6 +98,59 @@ public class ProjectsController : Controller
 
         TempData["Message"] = "專案已更新";
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult AddMember(string id, ProjectMemberInput member)
+    {
+        var project = _projectService.GetByCode(id);
+        if (project == null)
+        {
+            return NotFound();
+        }
+
+        member.ProjectCode = id;
+
+        if (!ModelState.IsValid)
+        {
+            var model = BuildFormModel(ToFormModel(project));
+            model.NewMember = member;
+            return View("Edit", model);
+        }
+
+        var (success, error) = _projectService.AddMember(id, MapToMember(member));
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "新增成員失敗");
+            var model = BuildFormModel(ToFormModel(project));
+            model.NewMember = member;
+            return View("Edit", model);
+        }
+
+        TempData["Message"] = "已新增專案成員";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult RemoveMember(string id, int memberId)
+    {
+        var project = _projectService.GetByCode(id);
+        if (project == null)
+        {
+            return NotFound();
+        }
+
+        var (success, error) = _projectService.RemoveMember(id, memberId);
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "移除成員失敗");
+            return View("Edit", BuildFormModel(ToFormModel(project)));
+        }
+
+        TempData["Message"] = "已移除專案成員";
+        return RedirectToAction(nameof(Edit), new { id });
     }
 
     private ProjectSummaryViewModel ToSummary(Project project)
@@ -148,6 +185,40 @@ public class ProjectsController : Controller
         };
     }
 
+    private ProjectMember MapToMember(ProjectMemberInput input)
+    {
+        return new ProjectMember
+        {
+            ProjectCode = input.ProjectCode,
+            EmployeeId = input.EmployeeId,
+            Role = input.Role,
+            AllocationPct = input.AllocationPct,
+            StartDate = input.StartDate,
+            EndDate = input.EndDate,
+            IsActive = true
+        };
+    }
+
+    private ProjectFormViewModel ToFormModel(Project project)
+    {
+        return new ProjectFormViewModel
+        {
+            OriginalCode = project.Code,
+            Code = project.Code,
+            Name = project.Name,
+            ProjectType = project.ProjectType,
+            ProjectSize = project.ProjectSize,
+            ProjectCriticality = project.ProjectCriticality,
+            Portfolio = project.Portfolio,
+            PmId = project.PmId,
+            StartDate = project.StartDate,
+            EndDate = project.EndDate,
+            Status = project.Status,
+            Description = project.Description,
+            NewMember = new ProjectMemberInput { ProjectCode = project.Code }
+        };
+    }
+
     private ProjectFormViewModel BuildFormModel(ProjectFormViewModel form)
     {
         form.ProjectTypes = _codeService.GetCodes("PROJECT_TYPE");
@@ -156,6 +227,33 @@ public class ProjectsController : Controller
         form.Portfolios = _codeService.GetCodes("PORTFOLIO");
         form.Statuses = _codeService.GetCodes("PROJECT_STATUS");
         form.Employees = _employeeService.GetAll().ToList();
+        form.NewMember ??= new ProjectMemberInput();
+        if (string.IsNullOrEmpty(form.NewMember.ProjectCode))
+        {
+            form.NewMember.ProjectCode = form.Code;
+        }
+
+        if (!string.IsNullOrWhiteSpace(form.Code))
+        {
+            var members = _projectService.GetMembers(form.Code);
+            form.Members = members.Select(m =>
+            {
+                var employee = form.Employees.FirstOrDefault(e => e.Id == m.EmployeeId);
+                return new ProjectMemberViewModel
+                {
+                    Id = m.Id,
+                    ProjectCode = m.ProjectCode,
+                    EmployeeId = m.EmployeeId,
+                    EmployeeNo = employee?.EmployeeNo ?? "",
+                    EmployeeName = employee?.Name ?? "",
+                    Role = m.Role,
+                    AllocationPct = m.AllocationPct,
+                    StartDate = m.StartDate,
+                    EndDate = m.EndDate
+                };
+            }).ToList();
+        }
+
         return form;
     }
 }

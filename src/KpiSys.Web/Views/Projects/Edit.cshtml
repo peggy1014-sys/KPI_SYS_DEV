@@ -118,6 +118,125 @@
     </div>
 </div>
 
+@if (!string.IsNullOrWhiteSpace(Model.Code))
+{
+    var roles = new[] { "PM", "SA", "SD", "PG", "OP" };
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-light d-flex align-items-center">
+            <h2 class="h5 mb-0">成員管理</h2>
+            <span class="text-muted ms-2">維護專案成員、角色與投入比例</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">員編</th>
+                            <th scope="col">姓名</th>
+                            <th scope="col">角色</th>
+                            <th scope="col">分配比例</th>
+                            <th scope="col">期間</th>
+                            <th scope="col" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Members.Any())
+                        {
+                            foreach (var member in Model.Members)
+                            {
+                                <tr>
+                                    <td>@member.EmployeeNo</td>
+                                    <td>@member.EmployeeName</td>
+                                    <td>@member.Role</td>
+                                    <td>@member.AllocationPct %</td>
+                                    <td>
+                                        @if (member.StartDate.HasValue || member.EndDate.HasValue)
+                                        {
+                                            <span>
+                                                @member.StartDate?.ToString("yyyy-MM-dd") ~ @member.EndDate?.ToString("yyyy-MM-dd")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">未設定</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <form asp-action="RemoveMember" asp-route-id="@Model.Code" asp-route-memberId="@member.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('確定要移除該成員嗎？');">移除</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">尚無成員</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <hr />
+
+            <h3 class="h6 mb-3">新增成員</h3>
+            <form asp-action="AddMember" asp-route-id="@Model.Code" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="NewMember.ProjectCode" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="col-md-4">
+                    <label asp-for="NewMember.EmployeeId" class="form-label"></label>
+                    <select asp-for="NewMember.EmployeeId" class="form-select">
+                        <option value="">(請選擇)</option>
+                        @foreach (var emp in Model.Employees)
+                        {
+                            <option value="@emp.Id">@emp.EmployeeNo - @emp.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewMember.EmployeeId" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="NewMember.Role" class="form-label"></label>
+                    <select asp-for="NewMember.Role" class="form-select">
+                        <option value="">(請選擇)</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                    <span asp-validation-for="NewMember.Role" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="NewMember.AllocationPct" class="form-label"></label>
+                    <div class="input-group">
+                        <input asp-for="NewMember.AllocationPct" type="number" class="form-control" min="0" max="100" step="1" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <span asp-validation-for="NewMember.AllocationPct" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="NewMember.StartDate" class="form-label"></label>
+                    <input asp-for="NewMember.StartDate" type="date" class="form-control" />
+                    <span asp-validation-for="NewMember.StartDate" class="text-danger"></span>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="NewMember.EndDate" class="form-label"></label>
+                    <input asp-for="NewMember.EndDate" type="date" class="form-control" />
+                    <span asp-validation-for="NewMember.EndDate" class="text-danger"></span>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success">新增成員</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
 }
