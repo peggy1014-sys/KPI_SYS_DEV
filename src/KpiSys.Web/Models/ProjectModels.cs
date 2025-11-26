@@ -81,8 +81,8 @@ public class ProjectListViewModel
 {
     public ProjectFilter Filter { get; set; } = new();
     public IReadOnlyList<ProjectSummaryViewModel> Projects { get; set; } = Array.Empty<ProjectSummaryViewModel>();
-    public IReadOnlyList<CodeItem> ProjectTypes { get; set; } = Array.Empty<CodeItem>();
-    public IReadOnlyList<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> ProjectTypes { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
     public List<Employee> Employees { get; set; } = new();
 }
 
@@ -131,10 +131,10 @@ public class ProjectFormViewModel
     [Display(Name = "專案說明")]
     public string? Description { get; set; }
 
-    public IReadOnlyList<CodeItem> ProjectTypes { get; set; } = Array.Empty<CodeItem>();
-    public IReadOnlyList<CodeItem> ProjectSizes { get; set; } = Array.Empty<CodeItem>();
-    public IReadOnlyList<CodeItem> ProjectCriticalities { get; set; } = Array.Empty<CodeItem>();
-    public IReadOnlyList<CodeItem> Portfolios { get; set; } = Array.Empty<CodeItem>();
-    public IReadOnlyList<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> ProjectTypes { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> ProjectSizes { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> ProjectCriticalities { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> Portfolios { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
     public List<Employee> Employees { get; set; } = new();
 }
