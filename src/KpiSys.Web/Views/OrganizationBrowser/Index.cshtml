@@ -1,0 +1,68 @@
+@model KpiSys.Web.Models.OrganizationBrowserViewModel
+@{
+    ViewData["Title"] = "組織瀏覽";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">組織瀏覽</h1>
+        <p class="text-muted mb-0">公司 → 部門 → 科/組 → 員工的唯讀樹狀檢視</p>
+    </div>
+    <div class="ms-auto">
+        <a class="btn btn-outline-secondary" asp-action="Index">重新整理</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card h-100">
+            <div class="label">組織節點</div>
+            <div class="value">@Model.TotalOrganizations</div>
+            <div class="text-muted small">公司、部門與科/組總數</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card h-100">
+            <div class="label">員工人數</div>
+            <div class="value">@Model.TotalEmployees</div>
+            <div class="text-muted small">依組織隸屬呈現</div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white fw-semibold d-flex align-items-center">
+        <span>組織樹狀圖</span>
+        <span class="badge bg-light text-secondary ms-2">唯讀</span>
+    </div>
+    <div class="card-body">
+        @if (!Model.Tree.Any())
+        {
+            <p class="text-muted mb-0">尚未建立任何組織。</p>
+        }
+        else
+        {
+            <div class="small text-muted mb-2">點擊節點即可展開部門與員工，僅供瀏覽。</div>
+            <ul class="list-unstyled" id="org-browser-tree">
+                @foreach (var node in Model.Tree)
+                {
+                    @Html.Partial("_OrganizationBrowseNode", node)
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('#org-browser-tree li .toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const list = btn.closest('li').querySelector(':scope > ul');
+                if (list) {
+                    list.classList.toggle('d-none');
+                    btn.classList.toggle('rotated');
+                }
+            });
+        });
+    </script>
+}
