@@ -1,0 +1,18 @@
+@model ErrorViewModel
+@{
+    ViewData["Title"] = "錯誤";
+}
+
+<h1 class="text-danger">發生錯誤</h1>
+<h2 class="text-danger">處理您的要求時發生錯誤。</h2>
+
+@if (Model?.ShowRequestId ?? false)
+{
+    <p>
+        <strong>Request ID:</strong> <code>@Model!.RequestId</code>
+    </p>
+}
+
+<p>
+    <a asp-controller="Home" asp-action="Index">回首頁</a>
+</p>
