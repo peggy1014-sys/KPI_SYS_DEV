@@ -124,6 +124,106 @@
 
     <div class="card shadow-sm mt-4">
         <div class="card-header bg-light d-flex align-items-center">
+            <h2 class="h5 mb-0">任務管理</h2>
+            <span class="text-muted ms-2">維護專案任務與計畫日期</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">任務名稱</th>
+                            <th scope="col">任務群組</th>
+                            <th scope="col">負責人</th>
+                            <th scope="col">計畫期間</th>
+                            <th scope="col" class="text-end">進度</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Tasks.Any())
+                        {
+                            foreach (var task in Model.Tasks)
+                            {
+                                <tr>
+                                    <td>@task.TaskName</td>
+                                    <td>@(task.TaskGroupName ?? task.TaskGroup ?? "-")</td>
+                                    <td>@(task.ResponsibleName ?? "-")</td>
+                                    <td>
+                                        @if (task.PlanStart.HasValue || task.PlanEnd.HasValue)
+                                        {
+                                            <span>@task.PlanStart?.ToString("yyyy-MM-dd") ~ @task.PlanEnd?.ToString("yyyy-MM-dd")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">未設定</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">@task.TaskProgress %</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">尚無任務</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <hr />
+
+            <h3 class="h6 mb-3">新增任務</h3>
+            <form asp-action="AddTask" asp-route-id="@Model.Code" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="NewTask.ProjectCode" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="col-md-4">
+                    <label asp-for="NewTask.TaskName" class="form-label"></label>
+                    <input asp-for="NewTask.TaskName" class="form-control" />
+                    <span asp-validation-for="NewTask.TaskName" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="NewTask.TaskGroup" class="form-label"></label>
+                    <select asp-for="NewTask.TaskGroup" class="form-select">
+                        <option value="">(請選擇)</option>
+                        @foreach (var group in Model.TaskGroups)
+                        {
+                            <option value="@group.Code">@group.CodeName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="NewTask.ResponsibleId" class="form-label"></label>
+                    <select asp-for="NewTask.ResponsibleId" class="form-select">
+                        <option value="">(請選擇)</option>
+                        @foreach (var member in Model.Members)
+                        {
+                            <option value="@member.EmployeeId">@member.EmployeeName (@member.EmployeeNo)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="NewTask.PlanStart" class="form-label"></label>
+                    <input asp-for="NewTask.PlanStart" type="date" class="form-control" />
+                    <span asp-validation-for="NewTask.PlanStart" class="text-danger"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="NewTask.PlanEnd" class="form-label"></label>
+                    <input asp-for="NewTask.PlanEnd" type="date" class="form-control" />
+                    <span asp-validation-for="NewTask.PlanEnd" class="text-danger"></span>
+                </div>
+                <div class="col-12 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-success">新增任務</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-light d-flex align-items-center">
             <h2 class="h5 mb-0">成員管理</h2>
             <span class="text-muted ms-2">維護專案成員、角色與投入比例</span>
         </div>
