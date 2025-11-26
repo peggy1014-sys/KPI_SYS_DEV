@@ -1,0 +1,102 @@
+@model KpiSys.Web.Models.UserListViewModel
+@{
+    ViewData["Title"] = "使用者管理";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">使用者管理</h1>
+        <p class="text-muted mb-0">維護系統登入帳號並可綁定員工主檔</p>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-white fw-semibold">新增使用者</div>
+    <div class="card-body">
+        <form asp-action="Create" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div class="col-md-3">
+                <label asp-for="NewUser.Name" class="form-label"></label>
+                <input asp-for="NewUser.Name" name="Name" class="form-control" />
+                <span asp-validation-for="NewUser.Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="NewUser.Email" class="form-label"></label>
+                <input asp-for="NewUser.Email" name="Email" class="form-control" />
+                <span asp-validation-for="NewUser.Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="NewUser.Role" class="form-label"></label>
+                <input asp-for="NewUser.Role" name="Role" class="form-control" />
+                <span asp-validation-for="NewUser.Role" class="text-danger"></span>
+            </div>
+            <div class="col-md-3">
+                <label asp-for="NewUser.EmployeeId" class="form-label">綁定員工</label>
+                <select asp-for="NewUser.EmployeeId" name="EmployeeId" class="form-select">
+                    <option value="">(未綁定)</option>
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <option value="@emp.Id">@emp.Name (@emp.EmployeeNo)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">新增</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>使用者 ID</th>
+                    <th>姓名</th>
+                    <th>Email</th>
+                    <th>角色</th>
+                    <th>員工綁定</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Users.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted">尚無使用者</td></tr>
+                }
+                else
+                {
+                    foreach (var user in Model.Users)
+                    {
+                        var employee = Model.Employees.FirstOrDefault(e => e.Id == user.EmployeeId);
+                        <tr>
+                            <td>@user.Id</td>
+                            <td>@user.Name</td>
+                            <td>@user.Email</td>
+                            <td>@user.Role</td>
+                            <td>@(employee == null ? "(未綁定)" : $"{employee.Name} ({employee.EmployeeNo})")</td>
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-sm btn-outline-primary me-2">編輯</a>
+                                <form asp-action="Delete" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('確定刪除此帳號?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

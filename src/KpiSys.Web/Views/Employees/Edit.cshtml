@@ -1,0 +1,69 @@
+@model KpiSys.Web.Models.EmployeeFormViewModel
+@{
+    var isEdit = Model.Id.HasValue;
+    ViewData["Title"] = isEdit ? "編輯員工" : "新增員工";
+}
+
+<div class="mb-4">
+    <h1 class="h3">@(isEdit ? "編輯員工" : "新增員工")</h1>
+    <p class="text-muted">填寫基本資料並套用 SA 規格的必要欄位驗證。</p>
+</div>
+
+<form asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@Model.Id" method="post" class="card shadow-sm">
+    @Html.AntiForgeryToken()
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="EmployeeNo" class="form-label"></label>
+                <input asp-for="EmployeeNo" class="form-control" />
+                <span asp-validation-for="EmployeeNo" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="OrgId" class="form-label">部門</label>
+                <select asp-for="OrgId" class="form-select">
+                    <option value="">請選擇</option>
+                    @foreach (var org in Model.Organizations)
+                    {
+                        <option value="@org.OrgId">@org.OrgName (@org.OrgId)</option>
+                    }
+                </select>
+                <span asp-validation-for="OrgId" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Title" class="form-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="ManagerId" class="form-label">主管</label>
+                <select asp-for="ManagerId" class="form-select">
+                    <option value="">(無)</option>
+                    @foreach (var manager in Model.Managers)
+                    {
+                        <option value="@manager.Id">@manager.Name (@manager.EmployeeNo)</option>
+                    }
+                </select>
+                <span asp-validation-for="ManagerId" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">回列表</a>
+        <button type="submit" class="btn btn-primary">儲存</button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

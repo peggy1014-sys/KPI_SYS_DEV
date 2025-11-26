@@ -1,0 +1,52 @@
+@model KpiSys.Web.Models.UserAccount
+@{
+    ViewData["Title"] = "編輯使用者";
+    var employees = ViewBag.Employees as IEnumerable<KpiSys.Web.Models.Employee> ?? Array.Empty<KpiSys.Web.Models.Employee>();
+}
+
+<div class="mb-4">
+    <h1 class="h3">編輯使用者</h1>
+    <p class="text-muted">更新帳號基本資料與綁定的員工。</p>
+</div>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="card shadow-sm">
+    @Html.AntiForgeryToken()
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Role" class="form-label"></label>
+                <input asp-for="Role" class="form-control" />
+                <span asp-validation-for="Role" class="text-danger"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="EmployeeId" class="form-label">綁定員工</label>
+                <select asp-for="EmployeeId" class="form-select">
+                    <option value="">(未綁定)</option>
+                    @foreach (var emp in employees)
+                    {
+                        <option value="@emp.Id">@emp.Name (@emp.EmployeeNo)</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-between">
+        <a asp-action="Index" class="btn btn-outline-secondary">回列表</a>
+        <button type="submit" class="btn btn-primary">儲存</button>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

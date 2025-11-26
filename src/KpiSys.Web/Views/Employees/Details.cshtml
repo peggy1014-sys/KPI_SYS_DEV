@@ -1,0 +1,108 @@
+@model KpiSys.Web.Models.EmployeeDetailViewModel
+@{
+    ViewData["Title"] = "員工職能管理";
+}
+
+<div class="mb-4">
+    <h1 class="h3">@Model.Employee.Name - 職能管理</h1>
+    <p class="text-muted">新增、移除職能並指定主要職能 (isPrimary)。</p>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <div class="mb-2"><span class="text-muted">員工編號：</span>@Model.Employee.EmployeeNo</div>
+                <div class="mb-2"><span class="text-muted">部門：</span>@Model.OrganizationName</div>
+                <div class="mb-2"><span class="text-muted">職稱：</span>@Model.Employee.Title</div>
+                <div class="mb-2"><span class="text-muted">主管：</span>@(Model.ManagerName ?? "(無)")</div>
+                <div class="mb-2"><span class="text-muted">Email：</span>@Model.Employee.Email</div>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between">
+                <a asp-action="Index" class="btn btn-outline-secondary">回列表</a>
+                <a asp-action="Edit" asp-route-id="@Model.Employee.Id" class="btn btn-outline-primary">編輯員工</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-white fw-semibold d-flex align-items-center">
+                <span>職能清單</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>職能</th>
+                                <th>主要職能</th>
+                                <th class="text-end">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.Employee.Roles.Any())
+                            {
+                                <tr><td colspan="3" class="text-muted text-center">尚未設定職能</td></tr>
+                            }
+                            else
+                            {
+                                foreach (var role in Model.Employee.Roles)
+                                {
+                                    <tr>
+                                        <td>@role.RoleName</td>
+                                        <td>
+                                            @if (role.IsPrimary)
+                                            {
+                                                <span class="badge bg-primary">主要</span>
+                                            }
+                                            else
+                                            {
+                                                <form asp-action="SetPrimaryRole" method="post" asp-route-id="@Model.Employee.Id" asp-route-roleId="@role.Id" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">設為主要</button>
+                                                </form>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <form asp-action="RemoveRole" method="post" asp-route-id="@Model.Employee.Id" asp-route-roleId="@role.Id" class="d-inline" onsubmit="return confirm('移除此職能?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">移除</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <hr />
+                <h6 class="mb-3">新增職能</h6>
+                <form asp-action="AddRole" method="post" class="row g-3" asp-route-id="@Model.Employee.Id">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-8">
+                        <label asp-for="NewRole.RoleName" class="form-label">職能名稱</label>
+                        <input asp-for="NewRole.RoleName" name="RoleName" class="form-control" />
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input" asp-for="NewRole.IsPrimary" name="IsPrimary" />
+                            <label class="form-check-label" asp-for="NewRole.IsPrimary">設為主要職能</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">新增職能</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
