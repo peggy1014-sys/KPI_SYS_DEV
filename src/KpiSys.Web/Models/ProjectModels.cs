@@ -181,7 +181,10 @@ public class ProjectFormViewModel
     public IReadOnlyCollection<CodeItem> ProjectCriticalities { get; set; } = Array.Empty<CodeItem>();
     public IReadOnlyCollection<CodeItem> Portfolios { get; set; } = Array.Empty<CodeItem>();
     public IReadOnlyCollection<CodeItem> Statuses { get; set; } = Array.Empty<CodeItem>();
+    public IReadOnlyCollection<CodeItem> TaskGroups { get; set; } = Array.Empty<CodeItem>();
     public List<Employee> Employees { get; set; } = new();
     public List<ProjectMemberViewModel> Members { get; set; } = new();
     public ProjectMemberInput NewMember { get; set; } = new();
+    public List<ProjectTaskViewModel> Tasks { get; set; } = new();
+    public ProjectTaskInput NewTask { get; set; } = new();
 }

@@ -11,12 +11,14 @@ public class ProjectsController : Controller
     private readonly IProjectService _projectService;
     private readonly ICodeService _codeService;
     private readonly IEmployeeService _employeeService;
+    private readonly ITaskService _taskService;
 
-    public ProjectsController(IProjectService projectService, ICodeService codeService, IEmployeeService employeeService)
+    public ProjectsController(IProjectService projectService, ICodeService codeService, IEmployeeService employeeService, ITaskService taskService)
     {
         _projectService = projectService;
         _codeService = codeService;
         _employeeService = employeeService;
+        _taskService = taskService;
     }
 
     [HttpGet]
@@ -134,6 +136,49 @@ public class ProjectsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    public IActionResult AddTask(string id, ProjectTaskInput task)
+    {
+        var project = _projectService.GetByCode(id);
+        if (project == null)
+        {
+            return NotFound();
+        }
+
+        task.ProjectCode = id;
+
+        if (!ModelState.IsValid)
+        {
+            var model = BuildFormModel(ToFormModel(project));
+            model.NewTask = task;
+            return View("Edit", model);
+        }
+
+        var newTask = new ProjectTask
+        {
+            ProjectCode = id,
+            TaskName = task.TaskName,
+            TaskGroup = task.TaskGroup,
+            ResponsibleId = task.ResponsibleId,
+            PlanStart = task.PlanStart,
+            PlanEnd = task.PlanEnd,
+            TaskProgress = 0
+        };
+
+        var (success, error) = _taskService.AddTask(newTask);
+        if (!success)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "新增任務失敗");
+            var model = BuildFormModel(ToFormModel(project));
+            model.NewTask = task;
+            return View("Edit", model);
+        }
+
+        TempData["Message"] = "已新增專案任務";
+        return RedirectToAction(nameof(Edit), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public IActionResult RemoveMember(string id, int memberId)
     {
         var project = _projectService.GetByCode(id);
@@ -215,7 +260,8 @@ public class ProjectsController : Controller
             EndDate = project.EndDate,
             Status = project.Status,
             Description = project.Description,
-            NewMember = new ProjectMemberInput { ProjectCode = project.Code }
+            NewMember = new ProjectMemberInput { ProjectCode = project.Code },
+            NewTask = new ProjectTaskInput { ProjectCode = project.Code }
         };
     }
 
@@ -226,11 +272,18 @@ public class ProjectsController : Controller
         form.ProjectCriticalities = _codeService.GetCodes("PROJECT_CRITICALITY");
         form.Portfolios = _codeService.GetCodes("PORTFOLIO");
         form.Statuses = _codeService.GetCodes("PROJECT_STATUS");
+        form.TaskGroups = _codeService.GetCodes("TASK_GROUP");
         form.Employees = _employeeService.GetAll().ToList();
         form.NewMember ??= new ProjectMemberInput();
         if (string.IsNullOrEmpty(form.NewMember.ProjectCode))
         {
             form.NewMember.ProjectCode = form.Code;
+        }
+
+        form.NewTask ??= new ProjectTaskInput();
+        if (string.IsNullOrEmpty(form.NewTask.ProjectCode))
+        {
+            form.NewTask.ProjectCode = form.Code;
         }
 
         if (!string.IsNullOrWhiteSpace(form.Code))
@@ -250,6 +303,26 @@ public class ProjectsController : Controller
                     AllocationPct = m.AllocationPct,
                     StartDate = m.StartDate,
                     EndDate = m.EndDate
+                };
+            }).ToList();
+
+            var tasks = _taskService.GetByProject(form.Code);
+            form.Tasks = tasks.Select(t =>
+            {
+                var responsible = form.Employees.FirstOrDefault(e => e.Id == t.ResponsibleId);
+                var groupName = form.TaskGroups.FirstOrDefault(g => string.Equals(g.Code, t.TaskGroup, StringComparison.OrdinalIgnoreCase))?.CodeName;
+                return new ProjectTaskViewModel
+                {
+                    Id = t.Id,
+                    ProjectCode = t.ProjectCode,
+                    TaskName = t.TaskName,
+                    TaskGroup = t.TaskGroup,
+                    TaskGroupName = groupName,
+                    ResponsibleId = t.ResponsibleId,
+                    ResponsibleName = responsible?.Name,
+                    PlanStart = t.PlanStart,
+                    PlanEnd = t.PlanEnd,
+                    TaskProgress = t.TaskProgress
                 };
             }).ToList();
         }
