@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userosscache
+*.userprefs
+*.csproj.user
+.nuget/
+*.log
+launchSettings.json
+appsettings.*.local.json
