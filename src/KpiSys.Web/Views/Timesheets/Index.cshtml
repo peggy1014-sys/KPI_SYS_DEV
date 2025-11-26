@@ -1,0 +1,107 @@
+@model KpiSys.Web.Models.TimesheetListViewModel
+@{
+    ViewData["Title"] = "我的工時";
+    var prevWeek = Model.WeekStart.AddDays(-7);
+    var nextWeek = Model.WeekStart.AddDays(7);
+}
+
+<div class="d-flex align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">我的工時</h1>
+        <p class="text-muted mb-0">依 SA 規則填報每日工時並提交審核</p>
+    </div>
+    <div class="ms-auto">
+        <a class="btn btn-primary" asp-action="Create" asp-route-workDate="@DateTime.Today">新增工時</a>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body d-flex align-items-center">
+        <div class="me-3">
+            <div class="text-muted small">週期</div>
+            <div class="fw-semibold">@Model.WeekStart:yyyy/MM/dd ~ @Model.WeekEnd:yyyy/MM/dd</div>
+        </div>
+        <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-date="@prevWeek">← 上一週</a>
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-date="@nextWeek">下一週 →</a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>專案</th>
+                    <th>任務</th>
+                    <th class="text-end">工時</th>
+                    <th class="text-end">加班</th>
+                    <th>狀態</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Entries.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted">本週尚無填報</td></tr>
+                }
+                else
+                {
+                    foreach (var item in Model.Entries)
+                    {
+                        <tr>
+                            <td>@item.WorkDate:yyyy/MM/dd</td>
+                            <td>
+                                <div class="fw-semibold">@item.ProjectName</div>
+                                <div class="text-muted small">@item.ProjectCode</div>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(item.TaskName) ? "-" : item.TaskName)</td>
+                            <td class="text-end">@item.Hours</td>
+                            <td class="text-end">@item.OvertimeHours</td>
+                            <td>
+                                @if (item.Status.Equals("Submitted", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <span class="badge bg-success">已提交</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">草稿</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary me-1" asp-action="Edit" asp-route-id="@item.Id">編輯</a>
+                                @if (item.CanSubmit)
+                                {
+                                    <form asp-action="Submit" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('提交後將送出審核，確定提交？');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success">提交</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="alert alert-light border">
+    <div class="fw-semibold mb-1">填報規則</div>
+    <ul class="mb-0">
+        <li>當日總工時 (含加班) 不得超過 24 小時。</li>
+        <li>同一天同專案同任務僅能填報一次。</li>
+        <li>工作日期不可為未來日，提交後狀態改為「已提交」。</li>
+    </ul>
+</div>
