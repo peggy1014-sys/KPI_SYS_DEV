@@ -1,9 +1,11 @@
 using KpiSys.Web;
+using KpiSys.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<ICodeService, CodeService>();
 
 var app = builder.Build();
 

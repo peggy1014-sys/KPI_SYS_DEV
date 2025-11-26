@@ -1,0 +1,256 @@
+@{
+    ViewData["Title"] = "代碼維護";
+}
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h4 class="mb-0">代碼集</h4>
+        </div>
+        <div id="codeSetList" class="list-group"></div>
+    </div>
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h4 id="codeSetTitle" class="mb-0">請先選擇代碼集</h4>
+                <div class="text-muted small">目前支援：PROJECT_SIZE、PROJECT_CRITICALITY、PROJECT_STATUS、PROJECT_TYPE、TASK_GROUP、DEPEND_TYPE</div>
+            </div>
+            <button id="btnAdd" type="button" class="btn btn-primary" disabled>
+                新增代碼
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 15%">Code</th>
+                        <th style="width: 20%">名稱</th>
+                        <th>說明</th>
+                        <th style="width: 12%" class="text-end">排序</th>
+                        <th style="width: 18%" class="text-center">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="codeTableBody">
+                    <tr><td colspan="5" class="text-center text-muted">尚未選擇代碼集</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="codeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="codeModalLabel">新增代碼</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="codeForm">
+                    <input type="hidden" id="formMode" value="create" />
+                    <div class="mb-3">
+                        <label class="form-label">代碼集 (Code Set)</label>
+                        <input type="text" id="codeSetInput" class="form-control" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">代碼 (Code)</label>
+                        <input type="text" id="codeInput" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">名稱 (必填)</label>
+                        <input type="text" id="codeNameInput" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">說明</label>
+                        <textarea id="descriptionInput" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">排序</label>
+                        <input type="number" id="sortOrderInput" class="form-control" value="0" />
+                    </div>
+                </form>
+                <div id="formError" class="text-danger small"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" id="saveBtn" class="btn btn-primary">儲存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const codeSetListEl = document.getElementById('codeSetList');
+        const codeTableBody = document.getElementById('codeTableBody');
+        const codeSetTitle = document.getElementById('codeSetTitle');
+        const btnAdd = document.getElementById('btnAdd');
+        const formMode = document.getElementById('formMode');
+        const codeSetInput = document.getElementById('codeSetInput');
+        const codeInput = document.getElementById('codeInput');
+        const codeNameInput = document.getElementById('codeNameInput');
+        const descriptionInput = document.getElementById('descriptionInput');
+        const sortOrderInput = document.getElementById('sortOrderInput');
+        const formError = document.getElementById('formError');
+        const codeModalEl = document.getElementById('codeModal');
+        const saveBtn = document.getElementById('saveBtn');
+
+        let selectedCodeSet = '';
+        let editingCode = '';
+        let codeModal;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            codeModal = new bootstrap.Modal(codeModalEl);
+            loadCodeSets();
+            btnAdd.addEventListener('click', () => openCreateModal());
+            saveBtn.addEventListener('click', onSave);
+        });
+
+        async function loadCodeSets() {
+            const response = await fetch('/Codes/CodeSets');
+            const sets = await response.json();
+            codeSetListEl.innerHTML = '';
+            sets.forEach(set => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'list-group-item list-group-item-action';
+                button.textContent = set;
+                button.onclick = () => selectCodeSet(set);
+                codeSetListEl.appendChild(button);
+            });
+        }
+
+        async function selectCodeSet(codeSet) {
+            selectedCodeSet = codeSet;
+            codeSetTitle.textContent = `${codeSet} 代碼列表`;
+            btnAdd.disabled = false;
+            codeSetInput.value = codeSet;
+            await loadCodes();
+        }
+
+        async function loadCodes() {
+            codeTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">讀取中...</td></tr>';
+            const response = await fetch(`/Codes/List?codeSet=${encodeURIComponent(selectedCodeSet)}`);
+            const codes = await response.json();
+            if (codes.length === 0) {
+                codeTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">尚無資料</td></tr>';
+                return;
+            }
+
+            codeTableBody.innerHTML = '';
+            codes.forEach(item => {
+                const row = document.createElement('tr');
+                const editButton = document.createElement('button');
+                editButton.className = 'btn btn-sm btn-outline-secondary me-1';
+                editButton.textContent = '編輯';
+                editButton.addEventListener('click', () => openEditModal(item));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn btn-sm btn-outline-danger';
+                deleteButton.textContent = '刪除';
+                deleteButton.addEventListener('click', () => deleteCode(item.codeSet, item.code));
+
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'text-center';
+                actionsCell.appendChild(editButton);
+                actionsCell.appendChild(deleteButton);
+
+                row.innerHTML = `
+                    <td>${escapeHtml(item.code)}</td>
+                    <td>${escapeHtml(item.codeName)}</td>
+                    <td>${escapeHtml(item.description || '')}</td>
+                    <td class="text-end">${item.sortOrder}</td>`;
+                row.appendChild(actionsCell);
+                codeTableBody.appendChild(row);
+            });
+        }
+
+        function openCreateModal() {
+            formMode.value = 'create';
+            codeModalEl.querySelector('.modal-title').textContent = '新增代碼';
+            formError.textContent = '';
+            codeInput.removeAttribute('readonly');
+            codeInput.value = '';
+            codeNameInput.value = '';
+            descriptionInput.value = '';
+            sortOrderInput.value = '0';
+            editingCode = '';
+            codeModal.show();
+        }
+
+        function openEditModal(item) {
+            formMode.value = 'edit';
+            codeModalEl.querySelector('.modal-title').textContent = `編輯代碼 ${item.code}`;
+            formError.textContent = '';
+            codeInput.value = item.code;
+            codeInput.setAttribute('readonly', 'readonly');
+            codeNameInput.value = item.codeName;
+            descriptionInput.value = item.description || '';
+            sortOrderInput.value = item.sortOrder;
+            editingCode = item.code;
+            codeModal.show();
+        }
+
+        async function onSave() {
+            const payload = {
+                codeSet: selectedCodeSet,
+                code: codeInput.value.trim(),
+                codeName: codeNameInput.value.trim(),
+                description: descriptionInput.value.trim(),
+                sortOrder: parseInt(sortOrderInput.value || '0', 10)
+            };
+
+            if (!payload.codeName) {
+                formError.textContent = '名稱為必填項目';
+                return;
+            }
+
+            if (formMode.value === 'create' && !payload.code) {
+                formError.textContent = '代碼為必填項目';
+                return;
+            }
+
+            try {
+                let response;
+                if (formMode.value === 'create') {
+                    response = await fetch('/Codes/Create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    response = await fetch(`/Codes/Edit?codeSet=${encodeURIComponent(selectedCodeSet)}&code=${encodeURIComponent(editingCode)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    formError.textContent = data.message || '發生錯誤，請稍後再試';
+                    return;
+                }
+
+                codeModal.hide();
+                await loadCodes();
+            } catch (err) {
+                formError.textContent = '網路或伺服器錯誤';
+            }
+        }
+
+        async function deleteCode(codeSet, code) {
+            if (!confirm('確定刪除該代碼嗎？')) return;
+            const response = await fetch(`/Codes/Delete?codeSet=${encodeURIComponent(codeSet)}&code=${encodeURIComponent(code)}`, { method: 'DELETE' });
+            if (response.ok) {
+                await loadCodes();
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+}
