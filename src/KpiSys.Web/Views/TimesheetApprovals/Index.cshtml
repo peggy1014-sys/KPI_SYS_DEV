@@ -29,7 +29,14 @@
                     <option value="">全部</option>
                     @foreach (var project in Model.Projects)
                     {
-                        <option value="@project.Code" @(project.Code == Model.Filter.ProjectCode ? "selected" : "")>@project.Code - @project.Name</option>
+                        if (project.Code == Model.Filter.ProjectCode)
+                        {
+                            <option value="@project.Code" selected="selected">@project.Code - @project.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@project.Code">@project.Code - @project.Name</option>
+                        }
                     }
                 </select>
             </div>
@@ -39,7 +46,14 @@
                     <option value="">全部</option>
                     @foreach (var emp in Model.Employees)
                     {
-                        <option value="@emp.Id" @(Model.Filter.EmployeeId == emp.Id ? "selected" : "")>@emp.EmployeeNo - @emp.Name</option>
+                        if (Model.Filter.EmployeeId == emp.Id)
+                        {
+                            <option value="@emp.Id" selected="selected">@emp.EmployeeNo - @emp.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@emp.Id">@emp.EmployeeNo - @emp.Name</option>
+                        }
                     }
                 </select>
             </div>
