@@ -9,6 +9,7 @@ builder.Services.AddSingleton<IOrganizationService, OrganizationService>();
 builder.Services.AddSingleton<IEmployeeService, EmployeeService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<ICodeService, CodeService>();
+builder.Services.AddSingleton<IProjectService, ProjectService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

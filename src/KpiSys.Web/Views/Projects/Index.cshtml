@@ -1,0 +1,107 @@
+@model KpiSys.Web.Models.ProjectListViewModel
+@{
+    ViewData["Title"] = "專案管理";
+}
+
+<div class="d-flex align-items-center mb-3">
+    <div>
+        <h1 class="h3 mb-0">專案管理</h1>
+        <p class="text-muted mb-0">維護專案基本資料，支援工時填報與任務分派</p>
+    </div>
+    <div class="ms-auto">
+        <a class="btn btn-primary" asp-action="Create">新增專案</a>
+    </div>
+</div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-info">@message</div>
+}
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">關鍵字</label>
+                <input name="Keyword" value="@Model.Filter.Keyword" class="form-control" placeholder="輸入代碼或名稱" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">專案類型</label>
+                <select name="ProjectType" class="form-select">
+                    <option value="">(全部)</option>
+                    @foreach (var type in Model.ProjectTypes)
+                    {
+                        <option value="@type.Code" selected="@(Model.Filter.ProjectType == type.Code)">@type.CodeName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">狀態</label>
+                <select name="Status" class="form-select">
+                    <option value="">(全部)</option>
+                    @foreach (var status in Model.Statuses)
+                    {
+                        <option value="@status.Code" selected="@(Model.Filter.Status == status.Code)">@status.CodeName</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">PM</label>
+                <select name="PmId" class="form-select">
+                    <option value="">(全部)</option>
+                    @foreach (var emp in Model.Employees)
+                    {
+                        <option value="@emp.Id" selected="@(Model.Filter.PmId == emp.Id)">@emp.Name (@emp.EmployeeNo)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end">
+                <button type="submit" class="btn btn-outline-primary me-2">查詢</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">清除</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>專案代碼</th>
+                    <th>專案名稱</th>
+                    <th>類型</th>
+                    <th>PM</th>
+                    <th>開始</th>
+                    <th>結束</th>
+                    <th>狀態</th>
+                    <th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Projects.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted">查無資料</td></tr>
+                }
+                else
+                {
+                    foreach (var project in Model.Projects)
+                    {
+                        <tr>
+                            <td>@project.Code</td>
+                            <td>@project.Name</td>
+                            <td>@project.ProjectType</td>
+                            <td>@project.PmName</td>
+                            <td>@project.StartDate?.ToString("yyyy-MM-dd")</td>
+                            <td>@project.EndDate?.ToString("yyyy-MM-dd")</td>
+                            <td>@project.Status</td>
+                            <td class="text-center">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@project.Code">編輯</a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
