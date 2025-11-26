@@ -1,9 +1,11 @@
 using KpiSys.Web.Models;
 using KpiSys.Web.Services;
+using KpiSys.Web;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KpiSys.Web.Controllers;
 
+[SessionAuthorize]
 public class EmployeesController : Controller
 {
     private readonly IEmployeeService _employeeService;

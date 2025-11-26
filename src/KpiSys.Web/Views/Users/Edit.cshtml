@@ -29,6 +29,11 @@
                 <input asp-for="Role" class="form-control" />
                 <span asp-validation-for="Role" class="text-danger"></span>
             </div>
+            <div class="col-md-4">
+                <label asp-for="Password" class="form-label">重設密碼 (選填)</label>
+                <input asp-for="Password" class="form-control" />
+                <span class="form-text">留空則維持原密碼。</span>
+            </div>
             <div class="col-md-6">
                 <label asp-for="EmployeeId" class="form-label">綁定員工</label>
                 <select asp-for="EmployeeId" class="form-select">

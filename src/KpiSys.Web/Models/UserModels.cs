@@ -19,6 +19,10 @@ public class UserAccount
     [Display(Name = "角色")]
     public string Role { get; set; } = string.Empty;
 
+    [DataType(DataType.Password)]
+    [Display(Name = "密碼")]
+    public string Password { get; set; } = string.Empty;
+
     [Display(Name = "員工綁定")]
     public int? EmployeeId { get; set; }
 }

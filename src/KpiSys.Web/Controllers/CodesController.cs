@@ -1,10 +1,12 @@
 using KpiSys.Web.Models;
 using KpiSys.Web.Services;
+using KpiSys.Web;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KpiSys.Web.Controllers;
 
 [Route("[controller]")]
+[SessionAuthorize("Admin")]
 public class CodesController : Controller
 {
     private readonly ICodeService _codeService;

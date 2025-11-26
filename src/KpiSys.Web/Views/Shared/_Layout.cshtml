@@ -1,7 +1,10 @@
-@{
+@{ 
     var path = Context.Request.Path.Value?.Trim('/') ?? "";
     var breadcrumb = string.IsNullOrEmpty(path) ? "🏠 /" : $"🏠 / {path}";
     var currentPath = string.IsNullOrEmpty(path) ? "/" : $"/{path.ToLower()}";
+    var isAuthenticated = Context.Session.GetInt32(SessionKeys.UserId).HasValue;
+    var userName = Context.Session.GetString(SessionKeys.UserName);
+    var userRole = Context.Session.GetString(SessionKeys.UserRole);
 }
 <!DOCTYPE html>
 <html lang="zh-Hant">
@@ -62,6 +65,23 @@
         <div class="main-content flex-grow-1 d-flex flex-column">
             <header class="topbar d-flex align-items-center px-4 py-3 border-bottom">
                 <div class="text-muted small">@breadcrumb</div>
+                <div class="ms-auto d-flex align-items-center gap-3">
+                    @if (isAuthenticated)
+                    {
+                        <div class="text-end">
+                            <div class="fw-semibold">@userName</div>
+                            <div class="text-muted small">@userRole</div>
+                        </div>
+                        <form asp-controller="Auth" asp-action="Logout" method="post" class="mb-0">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">登出</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a class="btn btn-sm btn-primary" href="/Auth/Login">登入</a>
+                    }
+                </div>
             </header>
             <main class="content-body px-4 py-4">
                 @RenderBody()
