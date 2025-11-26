@@ -1,3 +1,8 @@
+@{
+    var path = Context.Request.Path.Value?.Trim('/') ?? "";
+    var breadcrumb = string.IsNullOrEmpty(path) ? "🏠 /" : $"🏠 / {path}";
+    var currentPath = string.IsNullOrEmpty(path) ? "/" : $"/{path.ToLower()}";
+}
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -8,53 +13,49 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="bg-light">
-    <div class="app-shell d-flex">
+<body>
+    <div class="layout d-flex">
         <aside class="sidebar d-flex flex-column">
-            <div class="sidebar-header px-4 py-4 border-bottom">
-                <div class="fw-semibold text-white">專案工時KPI績效管理系統</div>
+            <div class="brand py-4 px-3">
+                <h5 class="mb-0 text-white">專案工時KPI績效管理系統</h5>
             </div>
-            <nav class="nav flex-column sidebar-nav px-2 py-3">
-                <a class="nav-link d-flex align-items-center" href="/">
-                    <i class="bi bi-speedometer2 me-2"></i> 儀表板
-                </a>
-                <a class="nav-link d-flex align-items-center" href="/employees">
-                    <i class="bi bi-people me-2"></i> 員工管理
-                </a>
-                <a class="nav-link d-flex align-items-center" href="/codes">
-                    <i class="bi bi-collection me-2"></i> 代碼管理
-                </a>
-                <a class="nav-link d-flex align-items-center" href="/projects">
-                    <i class="bi bi-kanban me-2"></i> 專案管理
-                </a>
-                <a class="nav-link d-flex align-items-center" href="/timesheets">
-                    <i class="bi bi-clock-history me-2"></i> 工時填報
-                </a>
+            <nav class="flex-grow-1 sidebar-nav">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center @(currentPath == "/" ? "active" : "")" href="/">
+                            <span class="me-2">📊</span> 儀表板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center @(currentPath == "/employees" ? "active" : "")" href="/employees">
+                            <span class="me-2">👥</span> 員工管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center @(currentPath == "/codes" ? "active" : "")" href="/codes">
+                            <span class="me-2">🧩</span> 代碼管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center @(currentPath == "/projects" ? "active" : "")" href="/projects">
+                            <span class="me-2">📁</span> 專案管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center @(currentPath == "/timesheets" ? "active" : "")" href="/timesheets">
+                            <span class="me-2">🕒</span> 工時填報
+                        </a>
+                    </li>
+                </ul>
             </nav>
         </aside>
-
-        <div class="main flex-grow-1 d-flex flex-column">
-            <header class="topbar d-flex align-items-center justify-content-between">
-                <div>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="/">首頁</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">
-                                @ViewData["Title"] ?? string.Join(" / ", ViewContext.RouteData.Values.Select(v => v.Value))
-                            </li>
-                        </ol>
-                    </nav>
-                </div>
-                <div class="text-muted small">@DateTime.Now.ToString("yyyy/MM/dd")</div>
+        <div class="main-content flex-grow-1">
+            <header class="topbar d-flex align-items-center px-4 py-3 border-bottom">
+                <div class="text-muted small">@breadcrumb</div>
             </header>
-
-            <main class="content flex-grow-1">
+            <main class="content-body px-4 py-4">
                 @RenderBody()
             </main>
-
-            <footer class="top-border small text-muted text-center py-3">
-                &copy; @DateTime.Now.Year 專案工時KPI績效管理系統
-            </footer>
         </div>
     </div>
 
