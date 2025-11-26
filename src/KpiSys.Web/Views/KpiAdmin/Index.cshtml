@@ -1,0 +1,75 @@
+@model KpiAdminViewModel
+@{
+    ViewData["Title"] = "KPI 管理";
+    var scoreDate = new DateTime(Model.Year, Model.Month, DateTime.DaysInMonth(Model.Year, Model.Month));
+}
+
+<div class="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-auto">
+            <label class="form-label" for="year">年份</label>
+            <input type="number" class="form-control" id="year" name="year" value="@Model.Year" min="2000" max="2100" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label" for="month">月份</label>
+            <input type="number" class="form-control" id="month" name="month" value="@Model.Month" min="1" max="12" />
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">查詢</button>
+        </div>
+    </form>
+    <form method="post" asp-action="Recalculate" class="d-flex gap-2 align-items-end">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="year" value="@Model.Year" />
+        <input type="hidden" name="month" value="@Model.Month" />
+        <div class="text-muted small">計算期間：@scoreDate.ToString("yyyy-MM-dd")</div>
+        <button type="submit" class="btn btn-success">重新計算本月 KPI</button>
+    </form>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-bordered align-middle">
+        <thead class="table-light">
+            <tr>
+                <th>員工</th>
+                <th>專案</th>
+                @foreach (var code in Model.KpiCodes)
+                {
+                    <th>@code</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.Items.Any())
+            {
+                <tr>
+                    <td colspan="@(Model.KpiCodes.Count + 2)" class="text-center text-muted">尚無 KPI 資料，請先重新計算。</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.EmployeeName (@item.EmployeeId)</td>
+                        <td>
+                            @if (string.IsNullOrWhiteSpace(item.ProjectCode))
+                            {
+                                <span class="badge bg-secondary">ALL</span>
+                            }
+                            else
+                            {
+                                <div>@item.ProjectCode</div>
+                                <div class="text-muted small">@item.ProjectName</div>
+                            }
+                        </td>
+                        @foreach (var code in Model.KpiCodes)
+                        {
+                            <td>@(item.Scores.TryGetValue(code, out var score) ? score.ToString("0.##") : "-")</td>
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>

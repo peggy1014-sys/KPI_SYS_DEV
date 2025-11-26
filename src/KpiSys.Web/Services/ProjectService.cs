@@ -286,6 +286,8 @@ public class ProjectService : IProjectService
             PmId = project.PmId,
             StartDate = project.StartDate,
             EndDate = project.EndDate,
+            BudgetHours = project.BudgetHours,
+            BudgetCost = project.BudgetCost,
             Status = project.Status,
             Description = project.Description
         };
@@ -322,6 +324,8 @@ public class ProjectService : IProjectService
                 PmId = pm?.Id,
                 StartDate = DateTime.Today.AddDays(-30),
                 EndDate = DateTime.Today.AddDays(90),
+                BudgetHours = 1200,
+                BudgetCost = 240000,
                 Status = "執行中",
                 Description = "升級 ERP 核心模組"
             },
@@ -336,6 +340,8 @@ public class ProjectService : IProjectService
                 PmId = pm?.Id,
                 StartDate = DateTime.Today.AddDays(-10),
                 EndDate = DateTime.Today.AddDays(60),
+                BudgetHours = 800,
+                BudgetCost = 120000,
                 Status = "規劃中",
                 Description = "優化人資系統與流程"
             }

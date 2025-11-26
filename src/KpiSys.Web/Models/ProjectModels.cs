@@ -40,6 +40,12 @@ public class Project
     [DataType(DataType.Date)]
     public DateTime? EndDate { get; set; }
 
+    [Display(Name = "預算工時")]
+    public decimal BudgetHours { get; set; }
+
+    [Display(Name = "預算成本")]
+    public decimal BudgetCost { get; set; }
+
     [Required]
     [Display(Name = "狀態")]
     public string Status { get; set; } = string.Empty;

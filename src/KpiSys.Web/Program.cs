@@ -1,5 +1,6 @@
 using KpiSys.Web;
 using KpiSys.Web.Services;
+using KpiSys.Web.Services.Kpi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ builder.Services.AddSingleton<ICodeService, CodeService>();
 builder.Services.AddSingleton<IProjectService, ProjectService>();
 builder.Services.AddSingleton<ITaskService, TaskService>();
 builder.Services.AddSingleton<ITimesheetService, TimesheetService>();
+builder.Services.AddSingleton<IKpiDataStore, KpiDataStore>();
+builder.Services.AddScoped<IKpiCalculationService, KpiCalculationService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {

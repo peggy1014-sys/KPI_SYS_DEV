@@ -8,6 +8,7 @@ namespace KpiSys.Web.Services;
 public interface ITimesheetService
 {
     IReadOnlyList<TimesheetEntry> GetByEmployeeAndRange(int employeeId, DateTime start, DateTime end);
+    IReadOnlyList<TimesheetEntry> GetApprovedByRange(DateTime start, DateTime end);
     TimesheetEntry? GetById(int id);
     (bool success, string? error) Create(TimesheetEntry entry);
     (bool success, string? error) Update(int id, TimesheetEntry updated, int actorEmployeeId);
@@ -44,6 +45,19 @@ public class TimesheetService : ITimesheetService
     {
         return _timesheets.Values
             .Where(t => t.EmployeeId == employeeId && t.WorkDate.Date >= start.Date && t.WorkDate.Date <= end.Date)
+            .OrderBy(t => t.WorkDate)
+            .ThenBy(t => t.ProjectCode)
+            .ThenBy(t => t.TaskId ?? int.MaxValue)
+            .Select(Clone)
+            .ToList();
+    }
+
+    public IReadOnlyList<TimesheetEntry> GetApprovedByRange(DateTime start, DateTime end)
+    {
+        return _timesheets.Values
+            .Where(t => string.Equals(t.Status, StatusApproved, StringComparison.OrdinalIgnoreCase)
+                        && t.WorkDate.Date >= start.Date
+                        && t.WorkDate.Date <= end.Date)
             .OrderBy(t => t.WorkDate)
             .ThenBy(t => t.ProjectCode)
             .ThenBy(t => t.TaskId ?? int.MaxValue)
