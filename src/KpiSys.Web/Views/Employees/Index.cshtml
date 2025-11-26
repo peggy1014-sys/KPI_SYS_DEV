@@ -1,0 +1,94 @@
+@model KpiSys.Web.Models.EmployeeListViewModel
+@{
+    ViewData["Title"] = "員工管理";
+}
+
+<div class="page-header mb-4">
+    <h1 class="mb-1">員工管理</h1>
+    <p class="lead mb-0">管理系統中的所有員工資訊</p>
+</div>
+
+<div class="table-card p-4 mb-4">
+    <form method="get" class="row g-3 align-items-center mb-3">
+        <div class="col-md-8">
+            <input type="text" name="q" value="@Model.Query" class="form-control search-input" placeholder="搜尋員工編號、姓名或電子郵件…" />
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>搜尋</button>
+            <a href="/employees" class="btn btn-outline-secondary">清除</a>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>員工編號</th>
+                    <th>姓名</th>
+                    <th>電子郵件</th>
+                    <th>組織</th>
+                    <th>職位</th>
+                    <th class="text-center" style="width: 240px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (!Model.Employees.Any())
+            {
+                <tr>
+                    <td colspan="6" class="text-center text-muted">沒有符合搜尋的員工</td>
+                </tr>
+            }
+            else
+            {
+                foreach (var employee in Model.Employees)
+                {
+                    <tr>
+                        <td class="fw-semibold">@employee.EmployeeNo</td>
+                        <td>@employee.Name</td>
+                        <td>@employee.Email</td>
+                        <td>@employee.Organization</td>
+                        <td>@employee.Title</td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a class="btn btn-sm btn-outline-primary" href="#"><i class="bi bi-diagram-3 me-1"></i>職能管理</a>
+                                <a class="btn btn-sm btn-outline-secondary" href="#"><i class="bi bi-pencil-square me-1"></i>編輯</a>
+                                <a class="btn btn-sm btn-outline-danger" href="#"><i class="bi bi-trash3 me-1"></i>刪除</a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="stat-card p-3 d-flex align-items-center gap-3">
+            <div class="icon-circle"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="text-muted small">總員工數</div>
+                <div class="h4 mb-0">@Model.TotalEmployees</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card p-3 d-flex align-items-center gap-3">
+            <div class="icon-circle"><i class="bi bi-building"></i></div>
+            <div>
+                <div class="text-muted small">部門數</div>
+                <div class="h4 mb-0">@Model.DepartmentCount</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card p-3 d-flex align-items-center gap-3">
+            <div class="icon-circle"><i class="bi bi-search"></i></div>
+            <div>
+                <div class="text-muted small">搜尋結果筆數</div>
+                <div class="h4 mb-0">@Model.SearchResultCount</div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,9 +1,47 @@
 @{
-    ViewData["Title"] = "首頁";
+    ViewData["Title"] = "儀表板";
 }
 
-<div class="text-center">
-    <h1 class="display-4">歡迎使用 KPI 管理系統</h1>
-    <p class="lead">根據《績效管理系統 系統分析V1》與《績效管理系統三階段功能開發細節順序》的需求，這裡是 MVC 架構的起點。</p>
-    <p>請依據後續階段計畫持續擴充控制器、檢視與設定。</p>
+<div class="page-header mb-4">
+    <h1 class="mb-1">專案工時KPI績效管理系統</h1>
+    <p class="lead mb-0">集中管理專案、工時填報與績效追蹤，讓團隊協作與管理更有效率。</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-3">
+        <a class="text-decoration-none text-reset" href="/employees">
+            <div class="quick-link-card p-3 h-100">
+                <div class="icon-circle mb-3"><i class="bi bi-people"></i></div>
+                <h5 class="mb-1">員工管理</h5>
+                <p class="text-muted mb-0">維護員工資料與職能，並掌握部門組織現況。</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a class="text-decoration-none text-reset" href="/codes">
+            <div class="quick-link-card p-3 h-100">
+                <div class="icon-circle mb-3"><i class="bi bi-collection"></i></div>
+                <h5 class="mb-1">代碼管理</h5>
+                <p class="text-muted mb-0">管理專案與工時使用的各類代碼集與代碼項目。</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a class="text-decoration-none text-reset" href="/projects">
+            <div class="quick-link-card p-3 h-100">
+                <div class="icon-circle mb-3"><i class="bi bi-kanban"></i></div>
+                <h5 class="mb-1">專案管理</h5>
+                <p class="text-muted mb-0">建立與追蹤專案狀態、規模與進度，以支援 KPI 評估。</p>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a class="text-decoration-none text-reset" href="/timesheets">
+            <div class="quick-link-card p-3 h-100">
+                <div class="icon-circle mb-3"><i class="bi bi-clock-history"></i></div>
+                <h5 class="mb-1">工時填報</h5>
+                <p class="text-muted mb-0">提交與檢視工時填報，掌握團隊投入與成本。</p>
+            </div>
+        </a>
+    </div>
 </div>
