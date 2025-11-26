@@ -1,0 +1,31 @@
+@{
+    ViewData["Title"] = "系統管理";
+}
+
+<div class="d-flex align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">系統管理首頁</h1>
+        <p class="text-muted mb-0">管理系統代碼與使用者帳號</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">代碼維護</h5>
+                <p class="card-text text-muted">維護系統使用的各項代碼，確保資料一致性。</p>
+                <a href="/Codes" class="btn btn-outline-primary">前往代碼管理</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">使用者維護</h5>
+                <p class="card-text text-muted">建立與管理可登入系統的帳號與角色。</p>
+                <a href="/Users" class="btn btn-outline-primary">前往使用者管理</a>
+            </div>
+        </div>
+    </div>
+</div>

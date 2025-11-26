@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using KpiSys.Web;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using KpiSys.Web.Models;
 
@@ -13,11 +15,22 @@ public class HomeController : Controller
         _logger = logger;
     }
 
+    [SessionAuthorize]
     public IActionResult Index()
     {
-        return View();
+        var role = HttpContext.Session.GetString(SessionKeys.UserRole);
+
+        return role switch
+        {
+            "Admin" => RedirectToAction("Admin", "Dashboard"),
+            "PM" => RedirectToAction("Pm", "Dashboard"),
+            "Manager" => RedirectToAction("Manager", "Dashboard"),
+            "Employee" => RedirectToAction("Employee", "Dashboard"),
+            _ => RedirectToAction("Login", "Auth")
+        };
     }
 
+    [SessionAuthorize]
     public IActionResult Privacy()
     {
         return View();

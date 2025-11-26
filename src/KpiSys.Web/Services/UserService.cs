@@ -10,6 +10,7 @@ public interface IUserService
     (bool success, string? error) Create(UserAccount user);
     (bool success, string? error) Update(int id, UserAccount updated);
     (bool success, string? error) Delete(int id);
+    UserAccount? Authenticate(string email, string password);
 }
 
 public class UserService : IUserService
@@ -27,6 +28,17 @@ public class UserService : IUserService
     public IReadOnlyList<UserAccount> GetAll() => _users.Values.OrderBy(u => u.Id).ToList();
 
     public UserAccount? GetById(int id) => _users.TryGetValue(id, out var user) ? user : null;
+
+    public UserAccount? Authenticate(string email, string password)
+    {
+        var user = _users.Values.FirstOrDefault(u => u.Email.Equals(email.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (user == null)
+        {
+            return null;
+        }
+
+        return user.Password == password ? user : null;
+    }
 
     public (bool success, string? error) Create(UserAccount user)
     {
@@ -52,6 +64,12 @@ public class UserService : IUserService
         if (!validation.success)
         {
             return validation;
+        }
+
+        var existing = _users[id];
+        if (string.IsNullOrWhiteSpace(updated.Password))
+        {
+            updated.Password = existing.Password;
         }
 
         updated.Id = id;
@@ -92,6 +110,11 @@ public class UserService : IUserService
             return (false, "角色必填");
         }
 
+        if (updatingId == null && string.IsNullOrWhiteSpace(user.Password))
+        {
+            return (false, "密碼必填");
+        }
+
         return (true, null);
     }
 
@@ -103,6 +126,7 @@ public class UserService : IUserService
             Name = user.Name.Trim(),
             Email = user.Email.Trim(),
             Role = user.Role.Trim(),
+            Password = string.IsNullOrWhiteSpace(user.Password) ? string.Empty : user.Password.Trim(),
             EmployeeId = user.EmployeeId
         };
     }
@@ -111,8 +135,10 @@ public class UserService : IUserService
     {
         var seedUsers = new List<UserAccount>
         {
-            new() { Name = "系統管理員", Email = "admin@example.com", Role = "Admin", EmployeeId = _employeeService.GetAll().FirstOrDefault()?.Id },
-            new() { Name = "審核主管", Email = "manager@example.com", Role = "Manager" },
+            new() { Name = "系統管理員", Email = "admin@example.com", Role = "Admin", Password = "admin123", EmployeeId = _employeeService.GetAll().FirstOrDefault()?.Id },
+            new() { Name = "審核主管", Email = "manager@example.com", Role = "Manager", Password = "manager123" },
+            new() { Name = "專案經理", Email = "pm@example.com", Role = "PM", Password = "pm12345" },
+            new() { Name = "一般員工", Email = "staff@example.com", Role = "Employee", Password = "staff123" },
         };
 
         foreach (var user in seedUsers)
