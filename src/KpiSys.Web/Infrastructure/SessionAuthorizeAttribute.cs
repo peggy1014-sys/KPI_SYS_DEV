@@ -19,6 +19,12 @@ public class SessionAuthorizeAttribute : Attribute, IAsyncActionFilter
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
+        if (!FeatureFlags.EnableLoginGuard)
+        {
+            await next();
+            return;
+        }
+
         var session = context.HttpContext.Session;
         var userId = session.GetInt32(SessionKeys.UserId);
         if (!userId.HasValue)

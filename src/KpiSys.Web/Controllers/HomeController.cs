@@ -18,6 +18,11 @@ public class HomeController : Controller
     [SessionAuthorize]
     public IActionResult Index()
     {
+        if (!FeatureFlags.EnableLoginGuard)
+        {
+            return View();
+        }
+
         var role = HttpContext.Session.GetString(SessionKeys.UserRole);
 
         return role switch
