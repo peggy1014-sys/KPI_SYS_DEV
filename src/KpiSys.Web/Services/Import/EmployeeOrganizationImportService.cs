@@ -4,9 +4,26 @@ using Microsoft.Extensions.Logging;
 
 namespace KpiSys.Web.Services.Import;
 
+public class EmployeeOrgImportResult
+{
+    public int OrganizationsRead { get; set; }
+
+    public int OrganizationsCreated { get; set; }
+
+    public int OrganizationsUpdated { get; set; }
+
+    public int EmployeesRead { get; set; }
+
+    public int EmployeesCreated { get; set; }
+
+    public int EmployeesUpdated { get; set; }
+
+    public int RolesLinked { get; set; }
+}
+
 public interface IEmployeeOrganizationImportService
 {
-    Task ImportAsync(string organizationFilePath, string employeeFilePath, CancellationToken cancellationToken = default);
+    Task<EmployeeOrgImportResult> ImportAsync(string organizationFilePath, string employeeFilePath, CancellationToken cancellationToken = default);
 }
 
 public class EmployeeOrganizationImportService : IEmployeeOrganizationImportService
@@ -32,24 +49,47 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         _logger = logger;
     }
 
-    public async Task ImportAsync(string organizationFilePath, string employeeFilePath, CancellationToken cancellationToken = default)
+    public async Task<EmployeeOrgImportResult> ImportAsync(string organizationFilePath, string employeeFilePath, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Starting import. Org file: {OrgFile}, Employee file: {EmployeeFile}", organizationFilePath, employeeFilePath);
 
-        ImportOrganizations(organizationFilePath, cancellationToken);
+        var orgResult = ImportOrganizations(organizationFilePath, cancellationToken);
         EnsureDefaultOrganizationExists();
-        ImportEmployeesAndRoles(employeeFilePath);
+        var employeeResult = ImportEmployeesAndRoles(employeeFilePath);
 
-        _logger.LogInformation("Import finished.");
+        var totalResult = new EmployeeOrgImportResult
+        {
+            OrganizationsRead = orgResult.Read,
+            OrganizationsCreated = orgResult.Created,
+            OrganizationsUpdated = orgResult.Updated,
+            EmployeesRead = employeeResult.Read,
+            EmployeesCreated = employeeResult.Created,
+            EmployeesUpdated = employeeResult.Updated,
+            RolesLinked = employeeResult.RolesLinked
+        };
+
+        _logger.LogInformation(
+            "Import finished. Organizations read: {OrgRead}, created: {OrgCreated}, updated: {OrgUpdated}. Employees read: {EmpRead}, created: {EmpCreated}, updated: {EmpUpdated}. Roles linked: {RolesLinked}.",
+            totalResult.OrganizationsRead,
+            totalResult.OrganizationsCreated,
+            totalResult.OrganizationsUpdated,
+            totalResult.EmployeesRead,
+            totalResult.EmployeesCreated,
+            totalResult.EmployeesUpdated,
+            totalResult.RolesLinked);
+
         await Task.CompletedTask;
+        return totalResult;
     }
 
-    private void ImportOrganizations(string organizationFilePath, CancellationToken cancellationToken)
+    private OrganizationImportResult ImportOrganizations(string organizationFilePath, CancellationToken cancellationToken)
     {
+        var result = new OrganizationImportResult();
+
         if (!File.Exists(organizationFilePath))
         {
             _logger.LogWarning("Organization file not found: {Path}", organizationFilePath);
-            return;
+            return result;
         }
 
         using var workbook = new XLWorkbook(organizationFilePath);
@@ -69,6 +109,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             })
             .Where(record => !string.IsNullOrWhiteSpace(record.Code))
             .ToList();
+
+        result.Read = records.Count;
 
         var pending = new List<OrganizationRecord>(records);
         var safetyCounter = 0;
@@ -96,17 +138,25 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 };
 
                 var existing = _organizationService.GetById(organization.OrgId);
-                var result = existing == null
+                var serviceResult = existing == null
                     ? _organizationService.Add(organization)
                     : _organizationService.Update(organization.OrgId, organization);
 
-                if (result.success)
+                if (serviceResult.success)
                 {
                     processedInRound.Add(record);
+                    if (existing == null)
+                    {
+                        result.Created++;
+                    }
+                    else
+                    {
+                        result.Updated++;
+                    }
                 }
                 else
                 {
-                    _logger.LogWarning("Skipped organization {OrgId}: {Error}", organization.OrgId, result.error);
+                    _logger.LogWarning("Skipped organization {OrgId}: {Error}", organization.OrgId, serviceResult.error);
                 }
             }
 
@@ -125,14 +175,18 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         {
             _logger.LogWarning("Could not import organization {OrgId} due to missing parent or validation issues.", leftover.Code);
         }
+
+        return result;
     }
 
-    private void ImportEmployeesAndRoles(string employeeFilePath)
+    private EmployeeImportResult ImportEmployeesAndRoles(string employeeFilePath)
     {
+        var result = new EmployeeImportResult();
+
         if (!File.Exists(employeeFilePath))
         {
             _logger.LogWarning("Employee file not found: {Path}", employeeFilePath);
-            return;
+            return result;
         }
 
         using var workbook = new XLWorkbook(employeeFilePath);
@@ -147,6 +201,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             {
                 continue;
             }
+
+            result.Read++;
 
             var name = GetCellValue(row, headerMap, "Name", "姓名");
             var email = GetCellValue(row, headerMap, "Email", "帳號", "電子郵件");
@@ -181,21 +237,23 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
             if (existing == null)
             {
-                var result = _employeeService.Create(employee);
-                if (!result.success)
+                var createResult = _employeeService.Create(employee);
+                if (!createResult.success)
                 {
-                    _logger.LogWarning("Failed to create employee {EmployeeNo}: {Error}", employee.EmployeeNo, result.error);
+                    _logger.LogWarning("Failed to create employee {EmployeeNo}: {Error}", employee.EmployeeNo, createResult.error);
                     continue;
                 }
+                result.Created++;
             }
             else
             {
-                var result = _employeeService.Update(existing.Id, employee);
-                if (!result.success)
+                var updateResult = _employeeService.Update(existing.Id, employee);
+                if (!updateResult.success)
                 {
-                    _logger.LogWarning("Failed to update employee {EmployeeNo}: {Error}", employee.EmployeeNo, result.error);
+                    _logger.LogWarning("Failed to update employee {EmployeeNo}: {Error}", employee.EmployeeNo, updateResult.error);
                     continue;
                 }
+                result.Updated++;
             }
 
             if (!string.IsNullOrWhiteSpace(rolesRaw))
@@ -206,13 +264,15 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
                 if (target != null)
                 {
-                    AssignRoles(target.Id, rolesRaw);
+                    result.RolesLinked += AssignRoles(target.Id, rolesRaw);
                 }
             }
         }
+
+        return result;
     }
 
-    private void AssignRoles(int employeeId, string rolesRaw)
+    private int AssignRoles(int employeeId, string rolesRaw)
     {
         var roles = rolesRaw
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -221,17 +281,18 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
         if (roles.Count == 0)
         {
-            return;
+            return 0;
         }
 
         EnsureRoleCodes(roles);
 
         int? desiredPrimaryRoleId = null;
+        var newLinks = 0;
+        var existingRoles = _employeeService.GetRoles(employeeId).ToList();
         for (var i = 0; i < roles.Count; i++)
         {
             var role = roles[i];
             var isPrimary = i == 0;
-            var existingRoles = _employeeService.GetRoles(employeeId);
             var existing = existingRoles.FirstOrDefault(r => r.RoleName.Equals(role, StringComparison.OrdinalIgnoreCase));
 
             if (existing != null)
@@ -250,11 +311,22 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 IsPrimary = isPrimary
             });
 
-            if (addResult.success && isPrimary)
+            if (addResult.success)
             {
-                desiredPrimaryRoleId = _employeeService
+                newLinks++;
+                var addedRole = _employeeService
                     .GetRoles(employeeId)
-                    .FirstOrDefault(r => r.RoleName.Equals(role, StringComparison.OrdinalIgnoreCase))?.Id;
+                    .FirstOrDefault(r => r.RoleName.Equals(role, StringComparison.OrdinalIgnoreCase));
+
+                if (addedRole != null)
+                {
+                    existingRoles.Add(addedRole);
+
+                    if (isPrimary)
+                    {
+                        desiredPrimaryRoleId = addedRole.Id;
+                    }
+                }
             }
 
             if (!addResult.success)
@@ -267,6 +339,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         {
             _employeeService.SetPrimaryRole(employeeId, desiredPrimaryRoleId.Value);
         }
+
+        return newLinks;
     }
 
     private void EnsureRoleCodes(IEnumerable<string> roles)
@@ -315,6 +389,26 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         {
             _logger.LogWarning("Failed to create default organization {OrgId}: {Error}", DefaultOrgId, result.error);
         }
+    }
+
+    private class OrganizationImportResult
+    {
+        public int Read { get; set; }
+
+        public int Created { get; set; }
+
+        public int Updated { get; set; }
+    }
+
+    private class EmployeeImportResult
+    {
+        public int Read { get; set; }
+
+        public int Created { get; set; }
+
+        public int Updated { get; set; }
+
+        public int RolesLinked { get; set; }
     }
 
     private class OrganizationRecord
