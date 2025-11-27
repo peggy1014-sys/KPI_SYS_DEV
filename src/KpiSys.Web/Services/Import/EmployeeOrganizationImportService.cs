@@ -60,7 +60,7 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         var records = worksheet
             .RowsUsed()
             .Skip(1)
-            .Select(row => new
+            .Select(row => new OrganizationRecord
             {
                 Code = GetCellValue(row, headerMap, "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號"),
                 Name = GetCellValue(row, headerMap, "OrgName", "組織名稱", "部門名稱"),
@@ -70,12 +70,12 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             .Where(record => !string.IsNullOrWhiteSpace(record.Code))
             .ToList();
 
-        var pending = new List<dynamic>(records);
+        var pending = new List<OrganizationRecord>(records);
         var safetyCounter = 0;
         while (pending.Count > 0 && safetyCounter < pending.Count + 5)
         {
             safetyCounter++;
-            var processedInRound = new List<dynamic>();
+            var processedInRound = new List<OrganizationRecord>();
 
             foreach (var record in pending)
             {
@@ -315,6 +315,17 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         {
             _logger.LogWarning("Failed to create default organization {OrgId}: {Error}", DefaultOrgId, result.error);
         }
+    }
+
+    private class OrganizationRecord
+    {
+        public string Code { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string ParentCode { get; set; } = string.Empty;
+
+        public int? Level { get; set; }
     }
 
     private static Dictionary<string, int> BuildHeaderMap(IXLRow headerRow)
