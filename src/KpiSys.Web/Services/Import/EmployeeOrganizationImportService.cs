@@ -12,11 +12,17 @@ public class EmployeeOrgImportResult
 
     public int OrganizationsUpdated { get; set; }
 
+    public int OrganizationsSkipped { get; set; }
+
     public int EmployeesRead { get; set; }
 
     public int EmployeesCreated { get; set; }
 
     public int EmployeesUpdated { get; set; }
+
+    public int EmployeesSkipped { get; set; }
+
+    public int EmployeesWithoutRoles { get; set; }
 
     public int RolesLinked { get; set; }
 }
@@ -53,64 +59,99 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
     {
         _logger.LogInformation("Starting import. Org file: {OrgFile}, Employee file: {EmployeeFile}", organizationFilePath, employeeFilePath);
 
-        var orgResult = ImportOrganizations(organizationFilePath, cancellationToken);
-        EnsureDefaultOrganizationExists();
-        var employeeResult = ImportEmployeesAndRoles(employeeFilePath);
-
-        var totalResult = new EmployeeOrgImportResult
+        if (!File.Exists(organizationFilePath))
         {
-            OrganizationsRead = orgResult.Read,
-            OrganizationsCreated = orgResult.Created,
-            OrganizationsUpdated = orgResult.Updated,
-            EmployeesRead = employeeResult.Read,
-            EmployeesCreated = employeeResult.Created,
-            EmployeesUpdated = employeeResult.Updated,
-            RolesLinked = employeeResult.RolesLinked
-        };
+            _logger.LogError("Organization import aborted because file was not found at path: {Path}", organizationFilePath);
+            throw new FileNotFoundException("Organization import file not found.", organizationFilePath);
+        }
 
-        _logger.LogInformation(
-            "Import finished. Organizations read: {OrgRead}, created: {OrgCreated}, updated: {OrgUpdated}. Employees read: {EmpRead}, created: {EmpCreated}, updated: {EmpUpdated}. Roles linked: {RolesLinked}.",
-            totalResult.OrganizationsRead,
-            totalResult.OrganizationsCreated,
-            totalResult.OrganizationsUpdated,
-            totalResult.EmployeesRead,
-            totalResult.EmployeesCreated,
-            totalResult.EmployeesUpdated,
-            totalResult.RolesLinked);
+        if (!File.Exists(employeeFilePath))
+        {
+            _logger.LogError("Employee import aborted because file was not found at path: {Path}", employeeFilePath);
+            throw new FileNotFoundException("Employee import file not found.", employeeFilePath);
+        }
 
-        await Task.CompletedTask;
-        return totalResult;
+        try
+        {
+            var orgResult = ImportOrganizations(organizationFilePath, cancellationToken);
+            EnsureDefaultOrganizationExists();
+            var employeeResult = ImportEmployeesAndRoles(employeeFilePath);
+
+            var totalResult = new EmployeeOrgImportResult
+            {
+                OrganizationsRead = orgResult.Read,
+                OrganizationsCreated = orgResult.Created,
+                OrganizationsUpdated = orgResult.Updated,
+                OrganizationsSkipped = orgResult.Skipped,
+                EmployeesRead = employeeResult.Read,
+                EmployeesCreated = employeeResult.Created,
+                EmployeesUpdated = employeeResult.Updated,
+                EmployeesSkipped = employeeResult.Skipped,
+                EmployeesWithoutRoles = employeeResult.EmptyRoles,
+                RolesLinked = employeeResult.RolesLinked
+            };
+
+            _logger.LogInformation(
+                "Import finished. Organizations read: {OrgRead}, created: {OrgCreated}, updated: {OrgUpdated}, skipped: {OrgSkipped}. Employees read: {EmpRead}, created: {EmpCreated}, updated: {EmpUpdated}, skipped: {EmpSkipped}, employees without roles: {EmpNoRoles}. Roles linked: {RolesLinked}.",
+                totalResult.OrganizationsRead,
+                totalResult.OrganizationsCreated,
+                totalResult.OrganizationsUpdated,
+                totalResult.OrganizationsSkipped,
+                totalResult.EmployeesRead,
+                totalResult.EmployeesCreated,
+                totalResult.EmployeesUpdated,
+                totalResult.EmployeesSkipped,
+                totalResult.EmployeesWithoutRoles,
+                totalResult.RolesLinked);
+
+            await Task.CompletedTask;
+            return totalResult;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Employee and organization import failed.");
+            throw;
+        }
     }
 
     private OrganizationImportResult ImportOrganizations(string organizationFilePath, CancellationToken cancellationToken)
     {
         var result = new OrganizationImportResult();
 
-        if (!File.Exists(organizationFilePath))
-        {
-            _logger.LogWarning("Organization file not found: {Path}", organizationFilePath);
-            return result;
-        }
-
         using var workbook = new XLWorkbook(organizationFilePath);
         var worksheet = workbook.Worksheets.First();
         var headerRow = worksheet.FirstRowUsed();
         var headerMap = BuildHeaderMap(headerRow);
+        _logger.LogInformation("Organization headers: {Headers}", string.Join(", ", headerMap.Keys));
 
-        var records = worksheet
-            .RowsUsed()
-            .Skip(1)
-            .Select(row => new OrganizationRecord
+        if (!HasAnyHeader(headerMap, new[] { "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號" }))
+        {
+            _logger.LogError("Organization import failed: required organization code column is missing.");
+            throw new InvalidOperationException("Organization code column not found in header row.");
+        }
+
+        var dataRows = worksheet.RowsUsed().Skip(1).ToList();
+        result.Read = dataRows.Count;
+
+        var records = new List<OrganizationRecord>();
+        foreach (var row in dataRows)
+        {
+            var record = new OrganizationRecord
             {
                 Code = GetCellValue(row, headerMap, "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號"),
                 Name = GetCellValue(row, headerMap, "OrgName", "組織名稱", "部門名稱"),
                 ParentCode = GetCellValue(row, headerMap, "ParentOrgCode", "上層組織代碼", "ParentOrgId", "上層部門代碼"),
                 Level = GetCellIntValue(row, headerMap, "OrgLevel", "Level", "層級")
-            })
-            .Where(record => !string.IsNullOrWhiteSpace(record.Code))
-            .ToList();
+            };
 
-        result.Read = records.Count;
+            if (string.IsNullOrWhiteSpace(record.Code))
+            {
+                result.Skipped++;
+                continue;
+            }
+
+            records.Add(record);
+        }
 
         var pending = new List<OrganizationRecord>(records);
         var safetyCounter = 0;
@@ -157,6 +198,7 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 else
                 {
                     _logger.LogWarning("Skipped organization {OrgId}: {Error}", organization.OrgId, serviceResult.error);
+                    result.Skipped++;
                 }
             }
 
@@ -173,8 +215,16 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
         foreach (var leftover in pending)
         {
+            result.Skipped++;
             _logger.LogWarning("Could not import organization {OrgId} due to missing parent or validation issues.", leftover.Code);
         }
+
+        _logger.LogInformation(
+            "Organization import summary: scanned {Scanned}, inserted {Inserted}, updated {Updated}, skipped {Skipped}.",
+            result.Read,
+            result.Created,
+            result.Updated,
+            result.Skipped);
 
         return result;
     }
@@ -183,26 +233,35 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
     {
         var result = new EmployeeImportResult();
 
-        if (!File.Exists(employeeFilePath))
-        {
-            _logger.LogWarning("Employee file not found: {Path}", employeeFilePath);
-            return result;
-        }
-
         using var workbook = new XLWorkbook(employeeFilePath);
         var worksheet = workbook.Worksheets.First();
         var headerRow = worksheet.FirstRowUsed();
         var headerMap = BuildHeaderMap(headerRow);
+        _logger.LogInformation("Employee headers: {Headers}", string.Join(", ", headerMap.Keys));
 
-        foreach (var row in worksheet.RowsUsed().Skip(1))
+        if (!HasAnyHeader(headerMap, new[] { "EmpId", "員工編號", "EmployeeNo", "EmployeeId" }))
+        {
+            _logger.LogError("Employee import failed: required employee id column is missing.");
+            throw new InvalidOperationException("Employee id column not found in header row.");
+        }
+
+        if (!HasAnyHeader(headerMap, new[] { "DeptCode", "部門代碼", "OrgCode", "OrgId", "部門" }))
+        {
+            _logger.LogError("Employee import failed: required department/organization column is missing.");
+            throw new InvalidOperationException("Employee department column not found in header row.");
+        }
+
+        var dataRows = worksheet.RowsUsed().Skip(1).ToList();
+        result.Read = dataRows.Count;
+
+        foreach (var row in dataRows)
         {
             var employeeNo = GetCellValue(row, headerMap, "EmpId", "員工編號", "EmployeeNo", "EmployeeId");
             if (string.IsNullOrWhiteSpace(employeeNo))
             {
+                result.Skipped++;
                 continue;
             }
-
-            result.Read++;
 
             var name = GetCellValue(row, headerMap, "Name", "姓名");
             var email = GetCellValue(row, headerMap, "Email", "帳號", "電子郵件");
@@ -212,13 +271,14 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
             if (string.IsNullOrWhiteSpace(name))
             {
+                result.Skipped++;
                 _logger.LogWarning("Employee {EmployeeNo} skipped because name is empty.", employeeNo);
                 continue;
             }
 
             if (string.IsNullOrWhiteSpace(orgId) || _organizationService.GetById(orgId.Trim()) == null)
             {
-                _logger.LogWarning("Employee {EmployeeNo} assigned to fallback organization because org {Org} not found.", employeeNo, orgId);
+                _logger.LogWarning("Employee {EmployeeNo} assigned to fallback organization because org {Org} not found.", employeeNo, orgId ?? string.Empty);
                 orgId = DefaultOrgId;
             }
 
@@ -241,6 +301,7 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 if (!createResult.success)
                 {
                     _logger.LogWarning("Failed to create employee {EmployeeNo}: {Error}", employee.EmployeeNo, createResult.error);
+                    result.Skipped++;
                     continue;
                 }
                 result.Created++;
@@ -251,23 +312,37 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 if (!updateResult.success)
                 {
                     _logger.LogWarning("Failed to update employee {EmployeeNo}: {Error}", employee.EmployeeNo, updateResult.error);
+                    result.Skipped++;
                     continue;
                 }
                 result.Updated++;
             }
 
-            if (!string.IsNullOrWhiteSpace(rolesRaw))
+            if (string.IsNullOrWhiteSpace(rolesRaw))
             {
-                var target = _employeeService
-                    .GetAll()
-                    .FirstOrDefault(e => e.EmployeeNo.Equals(employee.EmployeeNo, StringComparison.OrdinalIgnoreCase));
+                result.EmptyRoles++;
+                _logger.LogInformation("Employee {EmployeeNo} has no role assignments in source data.", employee.EmployeeNo);
+                continue;
+            }
 
-                if (target != null)
-                {
-                    result.RolesLinked += AssignRoles(target.Id, rolesRaw);
-                }
+            var target = _employeeService
+                .GetAll()
+                .FirstOrDefault(e => e.EmployeeNo.Equals(employee.EmployeeNo, StringComparison.OrdinalIgnoreCase));
+
+            if (target != null)
+            {
+                result.RolesLinked += AssignRoles(target.Id, rolesRaw);
             }
         }
+
+        _logger.LogInformation(
+            "Employee import summary: scanned {Scanned}, inserted {Inserted}, updated {Updated}, skipped {Skipped}, employees with empty roles: {EmptyRoles}, roles linked: {RolesLinked}.",
+            result.Read,
+            result.Created,
+            result.Updated,
+            result.Skipped,
+            result.EmptyRoles,
+            result.RolesLinked);
 
         return result;
     }
@@ -398,6 +473,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         public int Created { get; set; }
 
         public int Updated { get; set; }
+
+        public int Skipped { get; set; }
     }
 
     private class EmployeeImportResult
@@ -409,6 +486,10 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         public int Updated { get; set; }
 
         public int RolesLinked { get; set; }
+
+        public int Skipped { get; set; }
+
+        public int EmptyRoles { get; set; }
     }
 
     private class OrganizationRecord
@@ -428,6 +509,11 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             cell => cell.GetString().Trim(),
             cell => cell.Address.ColumnNumber,
             StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static bool HasAnyHeader(Dictionary<string, int> headerMap, IEnumerable<string> keys)
+    {
+        return keys.Any(key => headerMap.ContainsKey(key));
     }
 
     private static string GetCellValue(IXLRow row, Dictionary<string, int> headerMap, params string[] headerKeys)
