@@ -2,6 +2,7 @@ using KpiSys.Web;
 using KpiSys.Web.Services;
 using KpiSys.Web.Services.Kpi;
 using KpiSys.Web.Services.Import;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +45,14 @@ if (importRequested)
     var orgPath = Path.Combine(contentRoot, "db", "import", "組織資料匯出_20251022.xlsx");
     var employeePath = Path.Combine(contentRoot, "db", "import", "employees_2025-11-27.xlsx");
 
-    await importService.ImportAsync(orgPath, employeePath);
+    var result = await importService.ImportAsync(orgPath, employeePath);
+    var summaryMessage =
+        $"Organizations read: {result.OrganizationsRead}, created: {result.OrganizationsCreated}, updated: {result.OrganizationsUpdated}. " +
+        $"Employees read: {result.EmployeesRead}, created: {result.EmployeesCreated}, updated: {result.EmployeesUpdated}. Roles linked: {result.RolesLinked}.";
+
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("{Summary}", summaryMessage);
+    Console.WriteLine(summaryMessage);
     return;
 }
 
