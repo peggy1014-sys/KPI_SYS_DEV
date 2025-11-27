@@ -1,6 +1,7 @@
 using KpiSys.Web;
 using KpiSys.Web.Services;
 using KpiSys.Web.Services.Kpi;
+using KpiSys.Web.Services.Import;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddSingleton<ITaskService, TaskService>();
 builder.Services.AddSingleton<ITimesheetService, TimesheetService>();
 builder.Services.AddSingleton<IKpiDataStore, KpiDataStore>();
 builder.Services.AddScoped<IKpiCalculationService, KpiCalculationService>();
+builder.Services.AddSingleton<IEmployeeOrganizationImportService, EmployeeOrganizationImportService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -24,6 +26,27 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+var importRequested = args.Any(a => a.Equals("--import-employee-org", StringComparison.OrdinalIgnoreCase)
+    || a.Equals("import-employee-org", StringComparison.OrdinalIgnoreCase));
+
+if (importRequested)
+{
+    if (!app.Environment.IsDevelopment())
+    {
+        Console.WriteLine("The import command is only available in Development environment.");
+        return;
+    }
+
+    using var scope = app.Services.CreateScope();
+    var importService = scope.ServiceProvider.GetRequiredService<IEmployeeOrganizationImportService>();
+    var contentRoot = app.Environment.ContentRootPath;
+    var orgPath = Path.Combine(contentRoot, "db", "import", "組織資料匯出_20251022.xlsx");
+    var employeePath = Path.Combine(contentRoot, "db", "import", "employees_2025-11-27.xlsx");
+
+    await importService.ImportAsync(orgPath, employeePath);
+    return;
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
