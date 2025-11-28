@@ -1,13 +1,17 @@
 using KpiSys.Web;
+using KpiSys.Web.Data;
 using KpiSys.Web.Services;
 using KpiSys.Web.Services.Kpi;
 using KpiSys.Web.Services.Import;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<KpiSysDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddSingleton<IOrganizationService, OrganizationService>();
 builder.Services.AddSingleton<IEmployeeService, EmployeeService>();
 builder.Services.AddSingleton<IUserService, UserService>();

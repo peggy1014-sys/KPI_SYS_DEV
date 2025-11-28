@@ -1,6 +1,8 @@
 using KpiSys.Web.Models;
 using KpiSys.Web.Services;
 using KpiSys.Web;
+using KpiSys.Web.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KpiSys.Web.Controllers;
@@ -8,30 +10,104 @@ namespace KpiSys.Web.Controllers;
 [SessionAuthorize]
 public class EmployeesController : Controller
 {
+    private readonly KpiSysDbContext _db;
     private readonly IEmployeeService _employeeService;
     private readonly IOrganizationService _organizationService;
 
-    public EmployeesController(IEmployeeService employeeService, IOrganizationService organizationService)
+    public EmployeesController(
+        KpiSysDbContext db,
+        IEmployeeService employeeService,
+        IOrganizationService organizationService)
     {
+        _db = db;
         _employeeService = employeeService;
         _organizationService = organizationService;
     }
 
     [HttpGet]
-    public IActionResult Index([FromQuery] EmployeeFilter filter)
+    public async Task<IActionResult> Index([FromQuery] EmployeeFilter filter)
     {
-        var employees = _employeeService.Search(filter);
-        var organizations = _organizationService.GetAll().ToList();
+        var query = _db.Employees
+            .Include(e => e.Organization)
+            .Include(e => e.Supervisor)
+            .Include(e => e.Roles)
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(filter.Keyword))
+        {
+            var keyword = filter.Keyword.Trim();
+            query = query.Where(e =>
+                e.EmployeeNo.Contains(keyword) ||
+                e.EmployeeName.Contains(keyword) ||
+                (e.Email != null && e.Email.Contains(keyword)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EmployeeNo))
+        {
+            query = query.Where(e => e.EmployeeNo.Contains(filter.EmployeeNo.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Name))
+        {
+            query = query.Where(e => e.EmployeeName.Contains(filter.Name.Trim()));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.OrgId))
+        {
+            query = query.Where(e => e.OrgId.ToString().Equals(filter.OrgId.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Status))
+        {
+            query = query.Where(e => e.Status.Equals(filter.Status.Trim(), StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Title))
+        {
+            var title = filter.Title.Trim();
+            query = query.Where(e => e.Roles.Any(r => r.RoleCode.Contains(title)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ManagerId) && Guid.TryParse(filter.ManagerId, out var managerId))
+        {
+            query = query.Where(e => e.SupervisorId == managerId);
+        }
+
+        var employees = await query
+            .OrderBy(e => e.EmployeeNo)
+            .Select(e => new EmployeeSummaryViewModel
+            {
+                Id = e.EmployeeId.ToString(),
+                EmployeeNo = e.EmployeeNo,
+                Name = e.EmployeeName,
+                Email = e.Email,
+                Organization = e.Organization != null ? e.Organization.OrgName : string.Empty,
+                Title = e.Roles.OrderByDescending(r => r.IsPrimary).Select(r => r.RoleCode).FirstOrDefault() ?? string.Empty,
+                Manager = e.Supervisor != null ? e.Supervisor.EmployeeName : null
+            })
+            .ToListAsync();
+
+        var organizations = await _db.Organizations.AsNoTracking().OrderBy(o => o.OrgName).ToListAsync();
+        var managers = await _db.Employees.AsNoTracking()
+            .OrderBy(e => e.EmployeeNo)
+            .Select(e => new EmployeeSummaryViewModel
+            {
+                Id = e.EmployeeId.ToString(),
+                EmployeeNo = e.EmployeeNo,
+                Name = e.EmployeeName
+            })
+            .ToListAsync();
 
         var model = new EmployeeListViewModel
         {
             Filter = filter,
-            Employees = employees.Select(ToSummary).ToList(),
-            TotalEmployees = _employeeService.GetAll().Count,
-            DepartmentCount = organizations.Count,
+            Employees = employees,
+            TotalEmployees = await _db.Employees.CountAsync(),
+            DepartmentCount = await _db.Organizations.CountAsync(o => o.IsActive),
             SearchResultCount = employees.Count,
-            Organizations = organizations,
-            Managers = _employeeService.GetAll().ToList()
+            Organizations = organizations.Select(o => new Organization { OrgId = o.OrgId.ToString(), OrgName = o.OrgName }).ToList(),
+            Managers = managers
         };
 
         return View(model);
@@ -189,7 +265,7 @@ public class EmployeesController : Controller
     {
         return new EmployeeSummaryViewModel
         {
-            Id = employee.Id,
+            Id = employee.Id.ToString(),
             EmployeeNo = employee.EmployeeNo,
             Name = employee.Name,
             Email = employee.Email,
