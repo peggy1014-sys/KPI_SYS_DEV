@@ -124,10 +124,19 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         var headerMap = BuildHeaderMap(headerRow);
         _logger.LogInformation("Organization headers: {Headers}", string.Join(", ", headerMap.Keys));
 
-        if (!HasAnyHeader(headerMap, new[] { "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號" }))
+        var orgCodeHeader = GetFirstExistingHeader(headerMap, "OrgId", "OrgCode", "DEPT_ID", "組織代碼", "部門代碼", "部門代號");
+        if (orgCodeHeader == null)
         {
             _logger.LogError("Organization import failed: required organization code column is missing.");
             throw new InvalidOperationException("Organization code column not found in header row.");
+        }
+
+        _logger.LogInformation("Using {OrgCodeHeader} as organization code column.", orgCodeHeader);
+
+        var parentCodeHeader = GetFirstExistingHeader(headerMap, "ParentOrgCode", "上層組織代碼", "ParentOrgId", "上層部門代碼", "PARENT_DEPT_ID");
+        if (parentCodeHeader != null)
+        {
+            _logger.LogInformation("Using {ParentCodeHeader} as parent organization column.", parentCodeHeader);
         }
 
         var dataRows = worksheet.RowsUsed().Skip(1).ToList();
@@ -138,10 +147,10 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         {
             var record = new OrganizationRecord
             {
-                Code = GetCellValue(row, headerMap, "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號"),
-                Name = GetCellValue(row, headerMap, "OrgName", "組織名稱", "部門名稱"),
-                ParentCode = GetCellValue(row, headerMap, "ParentOrgCode", "上層組織代碼", "ParentOrgId", "上層部門代碼"),
-                Level = GetCellIntValue(row, headerMap, "OrgLevel", "Level", "層級")
+                Code = GetCellValue(row, headerMap, orgCodeHeader, "OrgCode", "組織代碼", "部門代碼", "OrgId", "部門代號", "DEPT_ID"),
+                Name = GetCellValue(row, headerMap, "OrgName", "組織名稱", "部門名稱", "DEPT_NAME"),
+                ParentCode = GetCellValue(row, headerMap, parentCodeHeader, "ParentOrgCode", "上層組織代碼", "ParentOrgId", "上層部門代碼", "PARENT_DEPT_ID"),
+                Level = GetCellIntValue(row, headerMap, "OrgLevel", "Level", "層級", "LEVEL")
             };
 
             if (string.IsNullOrWhiteSpace(record.Code))
@@ -167,7 +176,11 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 var parentId = string.IsNullOrWhiteSpace(record.ParentCode) ? null : record.ParentCode.Trim();
                 if (!string.IsNullOrWhiteSpace(parentId) && _organizationService.GetById(parentId) == null)
                 {
-                    continue;
+                    _logger.LogWarning(
+                        "Parent organization {ParentOrgId} not found for {OrgId}; importing without parent.",
+                        parentId,
+                        record.Code.Trim());
+                    parentId = null;
                 }
 
                 var organization = new Organization
@@ -516,10 +529,20 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
         return keys.Any(key => headerMap.ContainsKey(key));
     }
 
+    private static string? GetFirstExistingHeader(Dictionary<string, int> headerMap, params string[] keys)
+    {
+        return keys.FirstOrDefault(headerMap.ContainsKey);
+    }
+
     private static string GetCellValue(IXLRow row, Dictionary<string, int> headerMap, params string[] headerKeys)
     {
         foreach (var key in headerKeys)
         {
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
             if (headerMap.TryGetValue(key, out var columnNumber))
             {
                 return row.Cell(columnNumber).GetString().Trim();
