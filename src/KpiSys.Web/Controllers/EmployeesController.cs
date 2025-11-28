@@ -55,7 +55,8 @@ public class EmployeesController : Controller
 
         if (!string.IsNullOrWhiteSpace(filter.OrgId))
         {
-            query = query.Where(e => e.OrgId.ToString().Equals(filter.OrgId.Trim(), StringComparison.OrdinalIgnoreCase));
+            var orgId = filter.OrgId.Trim();
+            query = query.Where(e => e.OrgId.Equals(orgId, StringComparison.OrdinalIgnoreCase));
         }
 
         if (!string.IsNullOrWhiteSpace(filter.Status))
@@ -69,16 +70,17 @@ public class EmployeesController : Controller
             query = query.Where(e => e.Roles.Any(r => r.RoleCode.Contains(title)));
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.ManagerId) && Guid.TryParse(filter.ManagerId, out var managerId))
+        if (!string.IsNullOrWhiteSpace(filter.ManagerId))
         {
-            query = query.Where(e => e.SupervisorId == managerId);
+            var managerId = filter.ManagerId.Trim();
+            query = query.Where(e => e.SupervisorId != null && e.SupervisorId.Equals(managerId, StringComparison.OrdinalIgnoreCase));
         }
 
         var employees = await query
             .OrderBy(e => e.EmployeeNo)
             .Select(e => new EmployeeSummaryViewModel
             {
-                Id = e.EmployeeId.ToString(),
+                Id = e.EmployeeId,
                 EmployeeNo = e.EmployeeNo,
                 Name = e.EmployeeName,
                 Email = e.Email,
@@ -93,7 +95,7 @@ public class EmployeesController : Controller
             .OrderBy(e => e.EmployeeNo)
             .Select(e => new EmployeeSummaryViewModel
             {
-                Id = e.EmployeeId.ToString(),
+                Id = e.EmployeeId,
                 EmployeeNo = e.EmployeeNo,
                 Name = e.EmployeeName
             })

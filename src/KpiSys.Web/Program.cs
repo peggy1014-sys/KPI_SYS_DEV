@@ -21,7 +21,7 @@ builder.Services.AddSingleton<ITaskService, TaskService>();
 builder.Services.AddSingleton<ITimesheetService, TimesheetService>();
 builder.Services.AddSingleton<IKpiDataStore, KpiDataStore>();
 builder.Services.AddScoped<IKpiCalculationService, KpiCalculationService>();
-builder.Services.AddSingleton<IEmployeeOrganizationImportService, EmployeeOrganizationImportService>();
+builder.Services.AddScoped<IEmployeeOrganizationImportService, EmployeeOrganizationImportService>();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -31,6 +31,15 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+var dbDirectory = Path.Combine(builder.Environment.ContentRootPath, "db");
+Directory.CreateDirectory(dbDirectory);
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<KpiSysDbContext>();
+    db.Database.EnsureCreated();
+}
 
 var importRequested = args.Any(a => a.Equals("--import-employee-org", StringComparison.OrdinalIgnoreCase)
     || a.Equals("import-employee-org", StringComparison.OrdinalIgnoreCase));
