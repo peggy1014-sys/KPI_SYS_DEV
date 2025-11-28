@@ -24,6 +24,7 @@ namespace KpiSys.Web.Data
                 entity.ToTable("organizations");
                 entity.HasKey(e => e.OrgId);
                 entity.Property(e => e.OrgId)
+                    .HasMaxLength(36)
                     .HasColumnName("orgId")
                     .IsRequired();
                 entity.Property(e => e.OrgName)
@@ -31,6 +32,7 @@ namespace KpiSys.Web.Data
                     .IsRequired()
                     .HasColumnName("orgName");
                 entity.Property(e => e.ParentOrgId)
+                    .HasMaxLength(36)
                     .HasColumnName("parentOrgId");
                 entity.Property(e => e.PortfolioCode)
                     .HasMaxLength(50)
@@ -39,9 +41,11 @@ namespace KpiSys.Web.Data
                     .HasColumnName("orgLevel");
                 entity.Property(e => e.IsActive)
                     .IsRequired()
+                    .HasDefaultValue(true)
                     .HasColumnName("isActive");
                 entity.Property(e => e.CreatedAt)
                     .IsRequired()
+                    .HasDefaultValueSql("GETUTCDATE()")
                     .HasColumnName("createdAt");
                 entity.Property(e => e.UpdatedAt)
                     .HasColumnName("updatedAt");

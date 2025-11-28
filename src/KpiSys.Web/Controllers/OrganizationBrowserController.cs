@@ -1,62 +1,108 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using KpiSys.Web.Data;
 using KpiSys.Web.Models;
-using KpiSys.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace KpiSys.Web.Controllers;
 
 [SessionAuthorize]
 public class OrganizationBrowserController : Controller
 {
-    private readonly IOrganizationService _organizationService;
-    private readonly IEmployeeService _employeeService;
+    private readonly KpiSysDbContext _db;
 
-    public OrganizationBrowserController(IOrganizationService organizationService, IEmployeeService employeeService)
+    public OrganizationBrowserController(KpiSysDbContext db)
     {
-        _organizationService = organizationService;
-        _employeeService = employeeService;
+        _db = db;
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        var employeesByOrg = _employeeService.GetAll()
-            .GroupBy(e => e.OrgId, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.OrderBy(e => e.EmployeeNo).ToList(), StringComparer.OrdinalIgnoreCase);
+        var organizations = await _db.Organizations
+            .AsNoTracking()
+            .OrderBy(o => o.OrgLevel)
+            .ThenBy(o => o.OrgId)
+            .ToListAsync();
 
-        var tree = BuildTree(_organizationService.GetTree(), employeesByOrg);
+        var employeesByOrg = await _db.Employees
+            .AsNoTracking()
+            .GroupBy(e => e.OrgId)
+            .ToDictionaryAsync(
+                g => g.Key,
+                g => g.OrderBy(e => e.EmployeeNo)
+                    .Select(e => new Employee
+                    {
+                        EmployeeId = e.EmployeeId,
+                        EmployeeNo = e.EmployeeNo,
+                        Name = e.EmployeeName,
+                        OrgId = e.OrgId,
+                        Title = e.Status,
+                        Email = e.Email,
+                        Status = e.Status,
+                        SupervisorId = e.SupervisorId,
+                        CreatedAt = e.CreatedAt,
+                        UpdatedAt = e.UpdatedAt
+                    })
+                    .ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var tree = BuildTree(organizations, employeesByOrg);
 
         var model = new OrganizationBrowserViewModel
         {
             Tree = tree,
-            TotalOrganizations = _organizationService.GetAll().Count,
-            TotalEmployees = _employeeService.GetAll().Count
+            TotalOrganizations = organizations.Count,
+            TotalEmployees = employeesByOrg.Sum(g => g.Value.Count)
         };
 
         return View(model);
     }
 
     private static List<OrganizationTreeNodeViewModel> BuildTree(
-        IReadOnlyList<OrganizationNode> nodes,
+        IReadOnlyList<Data.Entities.OrganizationEntity> organizations,
         IDictionary<string, List<Employee>> employeesByOrg)
     {
-        var result = new List<OrganizationTreeNodeViewModel>();
-
-        foreach (var node in nodes.OrderBy(n => n.Node.OrgLevel).ThenBy(n => n.Node.OrgId))
-        {
-            var viewNode = new OrganizationTreeNodeViewModel
+        var nodeLookup = organizations.ToDictionary(
+            o => o.OrgId,
+            o => new OrganizationTreeNodeViewModel
             {
-                Organization = node.Node,
-                Employees = employeesByOrg.TryGetValue(node.Node.OrgId, out var empList)
-                    ? empList
-                    : new List<Employee>(),
-                Children = BuildTree(node.Children, employeesByOrg)
-            };
+                Organization = new Organization
+                {
+                    OrgId = o.OrgId,
+                    OrgName = o.OrgName,
+                    ParentOrgId = o.ParentOrgId,
+                    PortfolioCode = o.PortfolioCode,
+                    OrgLevel = o.OrgLevel,
+                    IsActive = o.IsActive,
+                    CreatedAt = o.CreatedAt,
+                    UpdatedAt = o.UpdatedAt
+                }
+            },
+            StringComparer.OrdinalIgnoreCase);
 
-            result.Add(viewNode);
+        foreach (var org in organizations)
+        {
+            if (!string.IsNullOrWhiteSpace(org.ParentOrgId) && nodeLookup.TryGetValue(org.ParentOrgId, out var parent))
+            {
+                parent.Children.Add(nodeLookup[org.OrgId]);
+            }
         }
 
-        return result;
+        foreach (var node in nodeLookup.Values)
+        {
+            node.Children = node.Children.OrderBy(c => c.Organization.OrgLevel).ThenBy(c => c.Organization.OrgId).ToList();
+            node.Employees = employeesByOrg.TryGetValue(node.Organization.OrgId, out var empList)
+                ? empList
+                : new List<Employee>();
+        }
+
+        return nodeLookup.Values
+            .Where(n => string.IsNullOrWhiteSpace(n.Organization.ParentOrgId))
+            .OrderBy(n => n.Organization.OrgLevel)
+            .ThenBy(n => n.Organization.OrgId)
+            .ToList();
     }
 }

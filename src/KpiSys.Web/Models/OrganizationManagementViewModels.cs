@@ -18,12 +18,13 @@ public class OrganizationListItemViewModel
     public int? OrgLevel { get; set; }
     public string? PortfolioCode { get; set; }
     public bool IsActive { get; set; }
+    public bool HasChildren { get; set; }
 }
 
 public class OrganizationFormViewModel
 {
     [Required]
-    [StringLength(50)]
+    [StringLength(36)]
     [Display(Name = "組織代碼")]
     public string OrgId { get; set; } = string.Empty;
 

@@ -86,7 +86,10 @@
                             <td class="text-end">
                                 <a asp-action="Details" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-secondary me-1">檢視</a>
                                 <a asp-action="Edit" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-primary me-1">編輯</a>
-                                <a asp-action="Delete" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-danger">刪除</a>
+                                @if (!item.HasChildren)
+                                {
+                                    <a asp-action="Delete" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-danger">刪除</a>
+                                }
                             </td>
                         </tr>
                     }
