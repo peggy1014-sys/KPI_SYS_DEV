@@ -1,7 +1,8 @@
+using System;
 using KpiSys.Web;
 using KpiSys.Web.Data;
+using KpiSys.Web.Data.Entities;
 using KpiSys.Web.Models;
-using KpiSys.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,10 @@ namespace KpiSys.Web.Controllers;
 public class OrganizationsController : Controller
 {
     private readonly KpiSysDbContext _db;
-    private readonly IOrganizationService _organizationService;
 
-    public OrganizationsController(KpiSysDbContext db, IOrganizationService organizationService)
+    public OrganizationsController(KpiSysDbContext db)
     {
         _db = db;
-        _organizationService = organizationService;
     }
 
     [HttpGet]
@@ -36,6 +35,11 @@ public class OrganizationsController : Controller
             query = query.Where(o => o.IsActive);
         }
 
+        var childCounts = await _db.Organizations
+            .GroupBy(o => o.ParentOrgId)
+            .Select(g => new { ParentOrgId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.ParentOrgId, g => g.Count);
+
         var items = await query
             .OrderBy(o => o.OrgLevel)
             .ThenBy(o => o.OrgId)
@@ -46,7 +50,8 @@ public class OrganizationsController : Controller
                 ParentOrgName = o.Parent != null ? o.Parent.OrgName : null,
                 OrgLevel = o.OrgLevel,
                 PortfolioCode = o.PortfolioCode,
-                IsActive = o.IsActive
+                IsActive = o.IsActive,
+                HasChildren = childCounts.ContainsKey(o.OrgId) && childCounts[o.OrgId] > 0
             })
             .ToListAsync();
 
@@ -76,33 +81,35 @@ public class OrganizationsController : Controller
     {
         await ValidateParentAsync(model);
 
+        if (await _db.Organizations.AnyAsync(o => o.OrgId == model.OrgId))
+        {
+            ModelState.AddModelError(nameof(model.OrgId), "組織代碼已存在");
+        }
+
         if (!ModelState.IsValid)
         {
             await PopulateParentSelectList();
             return View(model);
         }
 
-        if (!model.OrgLevel.HasValue && !string.IsNullOrWhiteSpace(model.ParentOrgId))
+        if (!model.OrgLevel.HasValue)
         {
             model.OrgLevel = await GetLevelFromParent(model.ParentOrgId);
         }
 
-        var (success, error) = _organizationService.Add(new Organization
+        var entity = new OrganizationEntity
         {
             OrgId = model.OrgId,
             OrgName = model.OrgName,
-            ParentOrgId = model.ParentOrgId,
-            PortfolioCode = model.PortfolioCode,
+            ParentOrgId = string.IsNullOrWhiteSpace(model.ParentOrgId) ? null : model.ParentOrgId,
+            PortfolioCode = string.IsNullOrWhiteSpace(model.PortfolioCode) ? null : model.PortfolioCode,
             OrgLevel = model.OrgLevel,
-            IsActive = model.IsActive
-        });
+            IsActive = model.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
 
-        if (!success)
-        {
-            ModelState.AddModelError(string.Empty, error ?? "新增失敗");
-            await PopulateParentSelectList();
-            return View(model);
-        }
+        _db.Organizations.Add(entity);
+        await _db.SaveChangesAsync();
 
         TempData["Message"] = "組織已新增";
         return RedirectToAction(nameof(Index));
@@ -148,27 +155,25 @@ public class OrganizationsController : Controller
             return View(model);
         }
 
-        if (!model.OrgLevel.HasValue && !string.IsNullOrWhiteSpace(model.ParentOrgId))
+        if (!model.OrgLevel.HasValue)
         {
             model.OrgLevel = await GetLevelFromParent(model.ParentOrgId);
         }
 
-        var (success, error) = _organizationService.Update(id, new Organization
+        var entity = await _db.Organizations.FirstOrDefaultAsync(o => o.OrgId == id);
+        if (entity == null)
         {
-            OrgId = model.OrgId,
-            OrgName = model.OrgName,
-            ParentOrgId = model.ParentOrgId,
-            PortfolioCode = model.PortfolioCode,
-            OrgLevel = model.OrgLevel,
-            IsActive = model.IsActive
-        });
-
-        if (!success)
-        {
-            ModelState.AddModelError(string.Empty, error ?? "更新失敗");
-            await PopulateParentSelectList(id);
-            return View(model);
+            return NotFound();
         }
+
+        entity.OrgName = model.OrgName;
+        entity.ParentOrgId = string.IsNullOrWhiteSpace(model.ParentOrgId) ? null : model.ParentOrgId;
+        entity.PortfolioCode = string.IsNullOrWhiteSpace(model.PortfolioCode) ? null : model.PortfolioCode;
+        entity.OrgLevel = model.OrgLevel;
+        entity.IsActive = model.IsActive;
+        entity.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
 
         TempData["Message"] = "組織已更新";
         return RedirectToAction(nameof(Index));
@@ -238,10 +243,25 @@ public class OrganizationsController : Controller
 
     [HttpPost, ActionName("Delete")]
     [ValidateAntiForgeryToken]
-    public IActionResult DeleteConfirmed(string id)
+    public async Task<IActionResult> DeleteConfirmed(string id)
     {
-        var (success, error) = _organizationService.Delete(id);
-        TempData["Message"] = success ? "組織已刪除" : error ?? "刪除失敗";
+        var hasChildren = await _db.Organizations.AnyAsync(o => o.ParentOrgId == id);
+        if (hasChildren)
+        {
+            TempData["Message"] = "此組織有下層單位，無法刪除";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var entity = await _db.Organizations.FirstOrDefaultAsync(o => o.OrgId == id);
+        if (entity == null)
+        {
+            TempData["Message"] = "找不到組織";
+            return RedirectToAction(nameof(Index));
+        }
+
+        _db.Organizations.Remove(entity);
+        await _db.SaveChangesAsync();
+        TempData["Message"] = "組織已刪除";
         return RedirectToAction(nameof(Index));
     }
 
@@ -249,13 +269,16 @@ public class OrganizationsController : Controller
     {
         var organizations = await _db.Organizations
             .AsNoTracking()
+            .Where(o => o.IsActive)
             .OrderBy(o => o.OrgLevel)
             .ThenBy(o => o.OrgId)
             .ToListAsync();
 
         if (!string.IsNullOrWhiteSpace(excludeOrgId))
         {
-            organizations = organizations.Where(o => !string.Equals(o.OrgId, excludeOrgId, StringComparison.OrdinalIgnoreCase)).ToList();
+            organizations = organizations
+                .Where(o => !string.Equals(o.OrgId, excludeOrgId, StringComparison.OrdinalIgnoreCase))
+                .ToList();
         }
 
         ViewBag.ParentOrganizations = organizations;
@@ -280,12 +303,21 @@ public class OrganizationsController : Controller
             {
                 ModelState.AddModelError(nameof(model.ParentOrgId), "上層組織不存在");
             }
+            else if (!string.IsNullOrWhiteSpace(currentOrgId) && await IsCircularParentAsync(currentOrgId, model.ParentOrgId))
+            {
+                ModelState.AddModelError(nameof(model.ParentOrgId), "上層組織不可形成循環");
+            }
         }
 
     }
 
-    private async Task<int?> GetLevelFromParent(string parentOrgId)
+    private async Task<int?> GetLevelFromParent(string? parentOrgId)
     {
+        if (string.IsNullOrWhiteSpace(parentOrgId))
+        {
+            return 1;
+        }
+
         var parentLevel = await _db.Organizations
             .AsNoTracking()
             .Where(o => o.OrgId == parentOrgId)
@@ -293,5 +325,25 @@ public class OrganizationsController : Controller
             .FirstOrDefaultAsync();
 
         return parentLevel.HasValue ? parentLevel + 1 : 1;
+    }
+
+    private async Task<bool> IsCircularParentAsync(string orgId, string? parentOrgId)
+    {
+        var currentParentId = parentOrgId;
+        while (!string.IsNullOrWhiteSpace(currentParentId))
+        {
+            if (string.Equals(currentParentId, orgId, StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            currentParentId = await _db.Organizations
+                .AsNoTracking()
+                .Where(o => o.OrgId == currentParentId)
+                .Select(o => o.ParentOrgId)
+                .FirstOrDefaultAsync();
+        }
+
+        return false;
     }
 }

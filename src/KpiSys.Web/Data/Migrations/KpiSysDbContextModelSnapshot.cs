@@ -104,15 +104,18 @@ namespace KpiSys.Web.Data.Migrations
             modelBuilder.Entity("KpiSys.Web.Data.Entities.OrganizationEntity", b =>
                 {
                     b.Property<string>("OrgId")
-                        .HasColumnType("nvarchar(450)")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)")
                         .HasColumnName("orgId");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()")
                         .HasColumnName("createdAt");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit")
+                        .HasDefaultValue(true)
                         .HasColumnName("isActive");
 
                     b.Property<int?>("OrgLevel")
@@ -126,7 +129,8 @@ namespace KpiSys.Web.Data.Migrations
                         .HasColumnName("orgName");
 
                     b.Property<string>("ParentOrgId")
-                        .HasColumnType("nvarchar(450)")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)")
                         .HasColumnName("parentOrgId");
 
                     b.Property<string>("PortfolioCode")

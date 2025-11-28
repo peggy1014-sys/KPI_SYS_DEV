@@ -5,8 +5,8 @@ namespace KpiSys.Web.Data.Entities
 {
     public class OrganizationEntity
     {
-        public string OrgId { get; set; } = string.Empty;
-        public string OrgName { get; set; } = string.Empty;
+        public string OrgId { get; set; } = default!;
+        public string OrgName { get; set; } = default!;
         public string? ParentOrgId { get; set; }
         public string? PortfolioCode { get; set; }
         public int? OrgLevel { get; set; }

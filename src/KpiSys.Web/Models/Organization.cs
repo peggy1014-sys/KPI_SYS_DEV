@@ -7,7 +7,7 @@ public class Organization
 {
     [Required]
     [Display(Name = "組織代碼")]
-    [StringLength(50)]
+    [StringLength(36)]
     public string OrgId { get; set; } = string.Empty;
 
     [Display(Name = "組織匯入代碼")]
