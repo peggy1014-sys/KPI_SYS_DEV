@@ -22,12 +22,20 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-3">
+                <label class="form-label">關鍵字</label>
+                <input name="Keyword" value="@Model.Filter.Keyword" class="form-control" placeholder="編號 / 姓名 / Email" />
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">員工編號</label>
                 <input name="EmployeeNo" value="@Model.Filter.EmployeeNo" class="form-control" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">姓名</label>
                 <input name="Name" value="@Model.Filter.Name" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">狀態</label>
+                <input name="Status" value="@Model.Filter.Status" class="form-control" placeholder="active / inactive" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">部門</label>

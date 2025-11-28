@@ -66,16 +66,18 @@ public class EmployeeRole
 
 public class EmployeeFilter
 {
+    public string? Keyword { get; set; }
     public string? EmployeeNo { get; set; }
     public string? Name { get; set; }
     public string? OrgId { get; set; }
     public string? Title { get; set; }
-    public int? ManagerId { get; set; }
+    public string? Status { get; set; }
+    public string? ManagerId { get; set; }
 }
 
 public class EmployeeSummaryViewModel
 {
-    public int Id { get; set; }
+    public string Id { get; set; } = string.Empty;
     public string EmployeeNo { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string? Email { get; set; }
@@ -92,7 +94,7 @@ public class EmployeeListViewModel
     public int DepartmentCount { get; set; }
     public int SearchResultCount { get; set; }
     public List<Organization> Organizations { get; set; } = new();
-    public List<Employee> Managers { get; set; } = new();
+    public List<EmployeeSummaryViewModel> Managers { get; set; } = new();
 }
 
 public class EmployeeFormViewModel
