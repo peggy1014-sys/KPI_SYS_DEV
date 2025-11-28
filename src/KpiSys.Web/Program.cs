@@ -12,8 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<KpiSysDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddSingleton<IOrganizationService, OrganizationService>();
-builder.Services.AddSingleton<IEmployeeService, EmployeeService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
 builder.Services.AddSingleton<IUserService, UserService>();
 builder.Services.AddSingleton<ICodeService, CodeService>();
 builder.Services.AddSingleton<IProjectService, ProjectService>();
@@ -38,7 +38,7 @@ Directory.CreateDirectory(dbDirectory);
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<KpiSysDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 var importRequested = args.Any(a => a.Equals("--import-employee-org", StringComparison.OrdinalIgnoreCase)

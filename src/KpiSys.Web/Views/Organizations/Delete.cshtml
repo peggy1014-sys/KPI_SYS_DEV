@@ -1,0 +1,35 @@
+@model KpiSys.Web.Models.OrganizationDetailViewModel
+@{
+    ViewData["Title"] = "刪除組織";
+}
+
+<h1 class="h3 mb-4">刪除組織</h1>
+
+<div class="alert alert-warning">
+    <strong>請確認：</strong> 刪除後無法復原。若此組織仍有子組織或其他資料關聯，將無法刪除。
+</div>
+
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">組織代碼</dt>
+            <dd class="col-sm-9">@Model.OrgId</dd>
+
+            <dt class="col-sm-3">組織名稱</dt>
+            <dd class="col-sm-9">@Model.OrgName</dd>
+
+            <dt class="col-sm-3">上層組織</dt>
+            <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.ParentOrgName) ? "-" : Model.ParentOrgName)</dd>
+
+            <dt class="col-sm-3">直接子組織數量</dt>
+            <dd class="col-sm-9">@Model.DirectChildCount</dd>
+        </dl>
+    </div>
+</div>
+
+<form asp-action="Delete" asp-route-id="@Model.OrgId" method="post" class="d-flex justify-content-end gap-2">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="OrgId" />
+    <a asp-action="Index" class="btn btn-outline-secondary">取消</a>
+    <button type="submit" class="btn btn-danger" @(Model.DirectChildCount > 0 ? "disabled" : null)>確定刪除</button>
+</form>

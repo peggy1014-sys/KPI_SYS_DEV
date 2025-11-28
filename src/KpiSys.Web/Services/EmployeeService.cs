@@ -21,15 +21,21 @@ public interface IEmployeeService
 
 public class EmployeeService : IEmployeeService
 {
-    private readonly ConcurrentDictionary<int, Employee> _employees = new();
+    private static readonly ConcurrentDictionary<int, Employee> _employees = new();
+    private static int _employeeId = 1000;
+    private static int _employeeRoleId = 1;
+    private static bool _seeded;
+
     private readonly IOrganizationService _organizationService;
-    private int _employeeId = 1000;
-    private int _employeeRoleId = 1;
 
     public EmployeeService(IOrganizationService organizationService)
     {
         _organizationService = organizationService;
-        Seed();
+        if (!_seeded)
+        {
+            Seed();
+            _seeded = true;
+        }
     }
 
     public IReadOnlyList<Employee> GetAll() => _employees.Values.OrderBy(e => e.EmployeeNo).ToList();
