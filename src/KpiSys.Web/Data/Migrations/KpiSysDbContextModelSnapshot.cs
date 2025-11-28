@@ -16,49 +16,49 @@ namespace KpiSys.Web.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "8.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             modelBuilder.Entity("KpiSys.Web.Data.Entities.EmployeeEntity", b =>
                 {
                     b.Property<string>("EmployeeId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("employeeId");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("createdAt");
 
                     b.Property<string>("Email")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("email");
 
                     b.Property<string>("EmployeeName")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("employeeName");
 
                     b.Property<string>("EmployeeNo")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("employeeNo");
 
                     b.Property<string>("OrgId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("orgId");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("status");
 
                     b.Property<string>("SupervisorId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("supervisorId");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("EmployeeId");
@@ -73,25 +73,25 @@ namespace KpiSys.Web.Data.Migrations
             modelBuilder.Entity("KpiSys.Web.Data.Entities.EmployeeRoleEntity", b =>
                 {
                     b.Property<string>("EmployeeRoleId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("employeeRoleId");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("createdAt");
 
                     b.Property<string>("EmployeeId")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("employeeId");
 
                     b.Property<bool>("IsPrimary")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("bit")
                         .HasColumnName("isPrimary");
 
                     b.Property<string>("RoleCode")
                         .IsRequired()
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(max)")
                         .HasColumnName("roleCode");
 
                     b.HasKey("EmployeeRoleId");
@@ -104,38 +104,38 @@ namespace KpiSys.Web.Data.Migrations
             modelBuilder.Entity("KpiSys.Web.Data.Entities.OrganizationEntity", b =>
                 {
                     b.Property<string>("OrgId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("orgId");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("createdAt");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("bit")
                         .HasColumnName("isActive");
 
                     b.Property<int?>("OrgLevel")
-                        .HasColumnType("INTEGER")
+                        .HasColumnType("int")
                         .HasColumnName("orgLevel");
 
                     b.Property<string>("OrgName")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(100)")
                         .HasColumnName("orgName");
 
                     b.Property<string>("ParentOrgId")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(450)")
                         .HasColumnName("parentOrgId");
 
                     b.Property<string>("PortfolioCode")
                         .HasMaxLength(50)
-                        .HasColumnType("TEXT")
+                        .HasColumnType("nvarchar(50)")
                         .HasColumnName("portfolioCode");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("TEXT")
+                        .HasColumnType("datetime2")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("OrgId");
