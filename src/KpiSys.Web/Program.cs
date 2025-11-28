@@ -45,15 +45,15 @@ if (importRequested)
     var orgPath = Path.Combine(contentRoot, "db", "import", "組織資料匯出_20251022.xlsx");
     var employeePath = Path.Combine(contentRoot, "db", "import", "employees_2025-11-27.xlsx");
 
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
-    try
-    {
-        var result = await importService.ImportAsync(orgPath, employeePath);
-        var summaryMessage =
-            $"Organizations: scanned {result.OrganizationsRead}, inserted {result.OrganizationsCreated}, updated {result.OrganizationsUpdated}, skipped {result.OrganizationsSkipped}. " +
-            $"Employees: scanned {result.EmployeesRead}, inserted {result.EmployeesCreated}, updated {result.EmployeesUpdated}, skipped {result.EmployeesSkipped}, employees without roles {result.EmployeesWithoutRoles}. " +
-            $"EmployeeRoles: created {result.RolesLinked} records.";
+        try
+        {
+            var result = await importService.ImportAsync(orgPath, employeePath);
+            var summaryMessage =
+                $"Organizations: scanned {result.OrganizationsRead}, inserted {result.OrganizationsCreated}, updated {result.OrganizationsUpdated}, skipped {result.OrganizationsSkipped}. " +
+                $"Employees: scanned {result.EmployeesRead}, inserted {result.EmployeesCreated}, updated {result.EmployeesUpdated}, skipped {result.EmployeesSkipped}, employees without roles {result.EmployeesWithoutRoles}. " +
+                $"EmployeeRoles: created {result.RolesCreated}, skipped {result.RolesSkipped}, invalid {result.RolesInvalid}.";
 
         logger.LogInformation("{Summary}", summaryMessage);
         Console.WriteLine(summaryMessage);

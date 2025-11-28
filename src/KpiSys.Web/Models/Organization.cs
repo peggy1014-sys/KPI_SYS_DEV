@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System;
 
 namespace KpiSys.Web.Models;
 
@@ -7,6 +8,9 @@ public class Organization
     [Required]
     [Display(Name = "組織代碼")]
     public string OrgId { get; set; } = string.Empty;
+
+    [Display(Name = "組織匯入代碼")]
+    public string? OrgCode { get; set; }
 
     [Required]
     [Display(Name = "組織名稱")]
@@ -18,6 +22,18 @@ public class Organization
     [Range(0, 10, ErrorMessage = "層級需介於 0-10" )]
     [Display(Name = "層級")]
     public int OrgLevel { get; set; }
+
+    [Display(Name = "事業群代碼")]
+    public string? PortfolioCode { get; set; }
+
+    [Display(Name = "是否啟用")]
+    public bool IsActive { get; set; } = true;
+
+    [Display(Name = "建立時間")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Display(Name = "更新時間")]
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class OrganizationNode

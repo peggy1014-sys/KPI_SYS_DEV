@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using KpiSys.Web.Models;
 
@@ -73,11 +74,19 @@ public class OrganizationService : IOrganizationService
             return (false, "上層組織不存在");
         }
 
+        if (!string.IsNullOrWhiteSpace(organization.OrgCode) &&
+            _organizations.Values.Any(o => string.Equals(o.OrgCode, organization.OrgCode.Trim(), StringComparison.OrdinalIgnoreCase)))
+        {
+            return (false, "orgCode 重複");
+        }
+
         if (organization.OrgLevel <= 0)
         {
             organization.OrgLevel = CalculateLevel(organization.ParentOrgId);
         }
 
+        organization.CreatedAt = organization.CreatedAt == default ? DateTime.UtcNow : organization.CreatedAt;
+        organization.UpdatedAt = null;
         var added = _organizations.TryAdd(organization.OrgId.Trim(), Normalize(organization));
         return added ? (true, null) : (false, "orgId 重複");
     }
@@ -94,9 +103,17 @@ public class OrganizationService : IOrganizationService
             return (false, "上層組織不存在");
         }
 
+        if (!string.IsNullOrWhiteSpace(updated.OrgCode) &&
+            _organizations.Values.Any(o => string.Equals(o.OrgCode, updated.OrgCode.Trim(), StringComparison.OrdinalIgnoreCase) && !string.Equals(o.OrgId, orgId, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (false, "orgCode 重複");
+        }
+
         var normalized = Normalize(updated);
         normalized.OrgId = existing.OrgId;
         normalized.OrgLevel = updated.OrgLevel > 0 ? updated.OrgLevel : CalculateLevel(updated.ParentOrgId);
+        normalized.CreatedAt = existing.CreatedAt;
+        normalized.UpdatedAt = DateTime.UtcNow;
         _organizations[orgId] = normalized;
         return (true, null);
     }
@@ -133,8 +150,13 @@ public class OrganizationService : IOrganizationService
         {
             OrgId = org.OrgId.Trim(),
             OrgName = org.OrgName.Trim(),
+            OrgCode = string.IsNullOrWhiteSpace(org.OrgCode) ? null : org.OrgCode.Trim(),
             ParentOrgId = string.IsNullOrWhiteSpace(org.ParentOrgId) ? null : org.ParentOrgId.Trim(),
-            OrgLevel = org.OrgLevel
+            OrgLevel = org.OrgLevel,
+            PortfolioCode = string.IsNullOrWhiteSpace(org.PortfolioCode) ? null : org.PortfolioCode.Trim(),
+            IsActive = org.IsActive,
+            CreatedAt = org.CreatedAt,
+            UpdatedAt = org.UpdatedAt
         };
     }
 

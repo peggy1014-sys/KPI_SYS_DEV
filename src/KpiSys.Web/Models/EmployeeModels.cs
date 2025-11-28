@@ -1,9 +1,12 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace KpiSys.Web.Models;
 
 public class Employee
 {
+    public string EmployeeId { get; set; } = Guid.NewGuid().ToString();
+
     public int Id { get; set; }
 
     [Required]
@@ -18,6 +21,9 @@ public class Employee
     [Display(Name = "電子郵件")]
     public string? Email { get; set; }
 
+    [Display(Name = "狀態")]
+    public string Status { get; set; } = "active";
+
     [Required]
     [Display(Name = "組織代碼")]
     public string OrgId { get; set; } = string.Empty;
@@ -29,6 +35,15 @@ public class Employee
     [Display(Name = "主管員編")]
     public int? ManagerId { get; set; }
 
+    [Display(Name = "主管 ID")]
+    public string? SupervisorId { get; set; }
+
+    [Display(Name = "建立時間")]
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    [Display(Name = "更新時間")]
+    public DateTime? UpdatedAt { get; set; }
+
     public List<EmployeeRole> Roles { get; set; } = new();
 }
 
@@ -37,12 +52,16 @@ public class EmployeeRole
     public int Id { get; set; }
     public int EmployeeId { get; set; }
 
+    public string RoleCode { get; set; } = string.Empty;
+
     [Required]
     [Display(Name = "職能名稱")]
     public string RoleName { get; set; } = string.Empty;
 
     [Display(Name = "主要職能")]
     public bool IsPrimary { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
 public class EmployeeFilter
