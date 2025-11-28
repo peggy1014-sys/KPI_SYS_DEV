@@ -28,7 +28,7 @@
                     <option value="">(無)</option>
                     @foreach (var p in parents)
                     {
-                        <option value="@p.OrgId" data-level="@p.OrgLevel" @(p.OrgId == Model.ParentOrgId ? "selected" : string.Empty)>@p.OrgId - @p.OrgName</option>
+                        <option value="@p.OrgId" data-level="@p.OrgLevel" selected="@(p.OrgId == Model.ParentOrgId ? "selected" : null)">@p.OrgId - @p.OrgName</option>
                     }
                 </select>
                 <span asp-validation-for="ParentOrgId" class="text-danger"></span>

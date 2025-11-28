@@ -64,9 +64,9 @@ public class EmployeeService : IEmployeeService
             query = query.Where(e => e.Title.Contains(filter.Title.Trim(), StringComparison.OrdinalIgnoreCase));
         }
 
-        if (filter.ManagerId.HasValue)
+        if (!string.IsNullOrWhiteSpace(filter.ManagerId) && int.TryParse(filter.ManagerId, out var managerId))
         {
-            query = query.Where(e => e.ManagerId == filter.ManagerId);
+            query = query.Where(e => e.ManagerId == managerId);
         }
 
         return query.OrderBy(e => e.EmployeeNo).ToList();
