@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using KpiSys.Web.Models;
 
@@ -75,6 +76,13 @@ public class EmployeeService : IEmployeeService
             return validation;
         }
 
+        if (string.IsNullOrWhiteSpace(employee.EmployeeId))
+        {
+            employee.EmployeeId = Guid.NewGuid().ToString();
+        }
+
+        employee.CreatedAt = employee.CreatedAt == default ? DateTime.UtcNow : employee.CreatedAt;
+        employee.UpdatedAt = null;
         employee.Id = Interlocked.Increment(ref _employeeId);
         employee.Roles = new List<EmployeeRole>();
         _employees.TryAdd(employee.Id, Clone(employee));
@@ -94,6 +102,9 @@ public class EmployeeService : IEmployeeService
             return validation;
         }
 
+        updated.EmployeeId = string.IsNullOrWhiteSpace(updated.EmployeeId) ? existing.EmployeeId : updated.EmployeeId;
+        updated.CreatedAt = existing.CreatedAt;
+        updated.UpdatedAt = DateTime.UtcNow;
         updated.Id = id;
         updated.Roles = existing.Roles;
         _employees[id] = Clone(updated);
@@ -136,12 +147,20 @@ public class EmployeeService : IEmployeeService
             return (false, "職能名稱必填");
         }
 
+        var normalizedRoleName = role.RoleName.Trim();
+        if (employee.Roles.Any(r => r.RoleName.Equals(normalizedRoleName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return (false, "職能重複");
+        }
+
         var newRole = new EmployeeRole
         {
             Id = Interlocked.Increment(ref _employeeRoleId),
             EmployeeId = employeeId,
-            RoleName = role.RoleName.Trim(),
-            IsPrimary = role.IsPrimary
+            RoleCode = string.IsNullOrWhiteSpace(role.RoleCode) ? normalizedRoleName : role.RoleCode.Trim(),
+            RoleName = normalizedRoleName,
+            IsPrimary = role.IsPrimary,
+            CreatedAt = DateTime.UtcNow
         };
 
         if (newRole.IsPrimary)
@@ -200,6 +219,11 @@ public class EmployeeService : IEmployeeService
             return (false, "姓名必填");
         }
 
+        if (string.IsNullOrWhiteSpace(employee.Status))
+        {
+            return (false, "狀態必填");
+        }
+
         if (string.IsNullOrWhiteSpace(employee.OrgId) || !_organizationService.Exists(employee.OrgId))
         {
             return (false, "組織不存在");
@@ -235,19 +259,26 @@ public class EmployeeService : IEmployeeService
     {
         return new Employee
         {
+            EmployeeId = employee.EmployeeId,
             Id = employee.Id,
             EmployeeNo = employee.EmployeeNo.Trim(),
             Name = employee.Name.Trim(),
             Email = employee.Email?.Trim(),
+            Status = employee.Status.Trim(),
             OrgId = employee.OrgId.Trim(),
             Title = employee.Title.Trim(),
             ManagerId = employee.ManagerId,
+            SupervisorId = employee.SupervisorId,
+            CreatedAt = employee.CreatedAt,
+            UpdatedAt = employee.UpdatedAt,
             Roles = employee.Roles.Select(r => new EmployeeRole
             {
                 Id = r.Id,
                 EmployeeId = r.EmployeeId,
+                RoleCode = r.RoleCode,
                 RoleName = r.RoleName,
-                IsPrimary = r.IsPrimary
+                IsPrimary = r.IsPrimary,
+                CreatedAt = r.CreatedAt
             }).ToList()
         };
     }
