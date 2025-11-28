@@ -155,7 +155,8 @@ namespace KpiSys.Web.Data.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
                             OrgLevel = 1,
-                            OrgName = "元信達資訊"
+                            OrgName = "元信達資訊",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -164,7 +165,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 2,
                             OrgName = "應用系統開發部",
-                            ParentOrgId = "QTB"
+                            ParentOrgId = "QTB",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -173,7 +175,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "應用系統開發部 一組",
-                            ParentOrgId = "QTB_001"
+                            ParentOrgId = "QTB_001",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -182,7 +185,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "應用系統開發部 二組",
-                            ParentOrgId = "QTB_001"
+                            ParentOrgId = "QTB_001",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -191,7 +195,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "應用系統開發部 三組",
-                            ParentOrgId = "QTB_001"
+                            ParentOrgId = "QTB_001",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -200,7 +205,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 2,
                             OrgName = "營運數據系統部",
-                            ParentOrgId = "QTB"
+                            ParentOrgId = "QTB",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -209,7 +215,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "營運數據系統部 一組",
-                            ParentOrgId = "QTB_002"
+                            ParentOrgId = "QTB_002",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -218,7 +225,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "營運數據系統部 二組",
-                            ParentOrgId = "QTB_002"
+                            ParentOrgId = "QTB_002",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -227,7 +235,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "營運數據系統部 三組",
-                            ParentOrgId = "QTB_002"
+                            ParentOrgId = "QTB_002",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -236,7 +245,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 2,
                             OrgName = "創新專案管理",
-                            ParentOrgId = "QTB"
+                            ParentOrgId = "QTB",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -245,7 +255,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 2,
                             OrgName = "資訊安全部",
-                            ParentOrgId = "QTB"
+                            ParentOrgId = "QTB",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -254,7 +265,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "資訊安全部 一組",
-                            ParentOrgId = "QTB_004"
+                            ParentOrgId = "QTB_004",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -263,7 +275,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "資訊安全部 二組",
-                            ParentOrgId = "QTB_004"
+                            ParentOrgId = "QTB_004",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         },
                         new
                         {
@@ -272,7 +285,8 @@ namespace KpiSys.Web.Data.Migrations
                             IsActive = true,
                             OrgLevel = 3,
                             OrgName = "資訊安全部 三組",
-                            ParentOrgId = "QTB_004"
+                            ParentOrgId = "QTB_004",
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
                         });
                 });
 
