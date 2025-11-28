@@ -6,7 +6,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using ClosedXML.Excel;
+using KpiSys.Web.Data;
+using KpiSys.Web.Data.Entities;
 using KpiSys.Web.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace KpiSys.Web.Services.Import;
@@ -43,15 +46,18 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
     private readonly IOrganizationService _organizationService;
     private readonly IEmployeeService _employeeService;
+    private readonly KpiSysDbContext _db;
     private readonly ILogger<EmployeeOrganizationImportService> _logger;
 
     public EmployeeOrganizationImportService(
         IOrganizationService organizationService,
         IEmployeeService employeeService,
+        KpiSysDbContext db,
         ILogger<EmployeeOrganizationImportService> logger)
     {
         _organizationService = organizationService;
         _employeeService = employeeService;
+        _db = db;
         _logger = logger;
     }
 
@@ -92,6 +98,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 RolesInvalid = employeeResult.RolesInvalid
             };
 
+            await PersistToDatabaseAsync();
+
             _logger.LogInformation(
                 "Import finished. Organizations read: {OrgRead}, created: {OrgCreated}, updated: {OrgUpdated}, skipped: {OrgSkipped}. Employees read: {EmpRead}, created: {EmpCreated}, updated: {EmpUpdated}, skipped: {EmpSkipped}, employees without roles: {EmpNoRoles}. Roles created: {RolesCreated}, skipped: {RolesSkipped}, invalid: {RolesInvalid}.",
                 totalResult.OrganizationsRead,
@@ -106,8 +114,6 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 totalResult.RolesCreated,
                 totalResult.RolesSkipped,
                 totalResult.RolesInvalid);
-
-            await Task.CompletedTask;
             return totalResult;
         }
         catch (Exception ex)
@@ -115,6 +121,80 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             _logger.LogError(ex, "Employee and organization import failed.");
             throw;
         }
+    }
+
+    private async Task PersistToDatabaseAsync()
+    {
+        _logger.LogInformation("Persisting imported data to the database...");
+
+        await _db.Database.EnsureCreatedAsync();
+
+        using var transaction = await _db.Database.BeginTransactionAsync();
+
+        _db.EmployeeRoles.RemoveRange(_db.EmployeeRoles);
+        _db.Employees.RemoveRange(_db.Employees);
+        _db.Organizations.RemoveRange(_db.Organizations);
+        await _db.SaveChangesAsync();
+
+        var organizations = _organizationService.GetAll().Select(o => new OrganizationEntity
+        {
+            OrgId = o.OrgId,
+            OrgName = o.OrgName,
+            ParentOrgId = o.ParentOrgId,
+            PortfolioCode = o.PortfolioCode,
+            OrgLevel = o.OrgLevel,
+            IsActive = o.IsActive,
+            CreatedAt = o.CreatedAt,
+            UpdatedAt = o.UpdatedAt ?? o.CreatedAt
+        }).ToList();
+
+        await _db.Organizations.AddRangeAsync(organizations);
+        await _db.SaveChangesAsync();
+
+        var importedEmployees = _employeeService.GetAll()
+            .Select(e => new
+            {
+                Model = e,
+                EmployeeId = string.IsNullOrWhiteSpace(e.EmployeeId) ? Guid.NewGuid().ToString() : e.EmployeeId
+            })
+            .ToList();
+
+        var employeeIdLookup = importedEmployees.ToDictionary(e => e.Model.Id, e => e.EmployeeId);
+
+        var employeeEntities = importedEmployees.Select(e => new EmployeeEntity
+        {
+            EmployeeId = e.EmployeeId,
+            EmployeeNo = e.Model.EmployeeNo,
+            EmployeeName = e.Model.Name,
+            OrgId = e.Model.OrgId,
+            SupervisorId = e.Model.ManagerId.HasValue && employeeIdLookup.TryGetValue(e.Model.ManagerId.Value, out var managerId)
+                ? managerId
+                : e.Model.SupervisorId,
+            Status = e.Model.Status,
+            Email = e.Model.Email,
+            CreatedAt = e.Model.CreatedAt,
+            UpdatedAt = e.Model.UpdatedAt ?? e.Model.CreatedAt
+        }).ToList();
+
+        await _db.Employees.AddRangeAsync(employeeEntities);
+        await _db.SaveChangesAsync();
+
+        var roleEntities = importedEmployees.SelectMany(e => e.Model.Roles.Select(r => new EmployeeRoleEntity
+        {
+            EmployeeRoleId = string.IsNullOrWhiteSpace(r.RoleCode)
+                ? Guid.NewGuid().ToString()
+                : $"{e.EmployeeId}-{r.RoleCode}-{r.Id}",
+            EmployeeId = e.EmployeeId,
+            RoleCode = string.IsNullOrWhiteSpace(r.RoleCode) ? r.RoleName : r.RoleCode,
+            IsPrimary = r.IsPrimary,
+            CreatedAt = r.CreatedAt
+        })).ToList();
+
+        await _db.EmployeeRoles.AddRangeAsync(roleEntities);
+        await _db.SaveChangesAsync();
+
+        await transaction.CommitAsync();
+        _logger.LogInformation("Persist completed. Organizations: {OrgCount}, Employees: {EmpCount}, Roles: {RoleCount}", organizations.Count, employeeEntities.Count, roleEntities.Count);
     }
 
     private OrganizationImportResult ImportOrganizations(string organizationFilePath, CancellationToken cancellationToken)
