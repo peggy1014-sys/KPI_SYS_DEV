@@ -24,11 +24,18 @@
             </div>
             <div class="col-md-6">
                 <label asp-for="ParentOrgId" class="form-label"></label>
-                <select asp-for="ParentOrgId" class="form-select" id="parentSelect">
+                <select id="parentSelect" name="ParentOrgId" class="form-select">
                     <option value="">(無)</option>
                     @foreach (var p in parents)
                     {
-                        <option value="@p.OrgId" data-level="@p.OrgLevel" selected="@(p.OrgId == Model.ParentOrgId ? "selected" : null)">@p.OrgId - @p.OrgName</option>
+                        if (p.OrgId == Model.ParentOrgId)
+                        {
+                            <option value="@p.OrgId" data-level="@p.OrgLevel" selected="selected">@p.OrgId - @p.OrgName</option>
+                        }
+                        else
+                        {
+                            <option value="@p.OrgId" data-level="@p.OrgLevel">@p.OrgId - @p.OrgName</option>
+                        }
                     }
                 </select>
                 <span asp-validation-for="ParentOrgId" class="text-danger"></span>

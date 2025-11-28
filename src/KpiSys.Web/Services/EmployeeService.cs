@@ -44,27 +44,32 @@ public class EmployeeService : IEmployeeService
     {
         var query = _employees.Values.AsEnumerable();
 
-        if (!string.IsNullOrWhiteSpace(filter.EmployeeNo))
+        var employeeNo = filter.EmployeeNo?.Trim();
+        if (!string.IsNullOrWhiteSpace(employeeNo))
         {
-            query = query.Where(e => e.EmployeeNo.Contains(filter.EmployeeNo.Trim(), StringComparison.OrdinalIgnoreCase));
+            query = query.Where(e => e.EmployeeNo.Contains(employeeNo, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.Name))
+        var name = filter.Name?.Trim();
+        if (!string.IsNullOrWhiteSpace(name))
         {
-            query = query.Where(e => e.Name.Contains(filter.Name.Trim(), StringComparison.OrdinalIgnoreCase));
+            query = query.Where(e => e.Name.Contains(name, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.OrgId))
+        var orgId = filter.OrgId?.Trim();
+        if (!string.IsNullOrWhiteSpace(orgId))
         {
-            query = query.Where(e => string.Equals(e.OrgId, filter.OrgId, StringComparison.OrdinalIgnoreCase));
+            query = query.Where(e => string.Equals(e.OrgId, orgId, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.Title))
+        var title = filter.Title?.Trim();
+        if (!string.IsNullOrWhiteSpace(title))
         {
-            query = query.Where(e => e.Title.Contains(filter.Title.Trim(), StringComparison.OrdinalIgnoreCase));
+            query = query.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
         }
 
-        if (!string.IsNullOrWhiteSpace(filter.ManagerId) && int.TryParse(filter.ManagerId, out var managerId))
+        var managerIdRaw = filter.ManagerId?.Trim();
+        if (!string.IsNullOrWhiteSpace(managerIdRaw) && int.TryParse(managerIdRaw, out var managerId))
         {
             query = query.Where(e => e.ManagerId == managerId);
         }
