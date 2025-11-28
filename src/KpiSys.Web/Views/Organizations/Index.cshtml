@@ -1,4 +1,4 @@
-@model KpiSys.Web.Models.OrganizationIndexViewModel
+@model KpiSys.Web.Models.OrganizationIndexPageViewModel
 @{
     ViewData["Title"] = "組織管理";
 }
@@ -6,10 +6,11 @@
 <div class="d-flex align-items-center mb-4">
     <div>
         <h1 class="h3 mb-0">組織管理</h1>
-        <p class="text-muted mb-0">建立組織階層供後續權限與工時審核使用</p>
+        <p class="text-muted mb-0">維護組織主檔，供後續員工、權限與工時審核使用</p>
     </div>
-    <div class="ms-auto">
-        <a class="btn btn-outline-secondary" asp-action="Index">重新整理</a>
+    <div class="ms-auto d-flex gap-2">
+        <a class="btn btn-outline-secondary" asp-controller="OrganizationBrowser" asp-action="Index">切換到樹狀檢視</a>
+        <a class="btn btn-primary" asp-action="Create">新增組織</a>
     </div>
 </div>
 
@@ -18,94 +19,79 @@
     <div class="alert alert-info">@message</div>
 }
 
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white fw-semibold">組織清單</div>
-            <div class="card-body">
-                @if (Model.Tree.Count == 0)
-                {
-                    <p class="text-muted">尚未建立任何組織。</p>
-                }
-                else
-                {
-                    <div class="small text-muted mb-2">點擊節點即可展開/收合</div>
-                    <ul class="list-unstyled" id="org-tree">
-                        @foreach (var node in Model.Tree)
-                        {
-                            @Html.Partial("_OrganizationNode", node)
-                        }
-                    </ul>
-                }
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label" for="keyword">組織名稱關鍵字</label>
+                <input id="keyword" name="keyword" value="@Model.Filter.Keyword" class="form-control" placeholder="輸入組織名稱" />
             </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white fw-semibold">新增組織節點</div>
-            <div class="card-body">
-                <form asp-action="Create" method="post" class="row g-3">
-                    @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-                    <div class="col-md-6">
-                        <label asp-for="NewOrganization.OrgId" class="form-label"></label>
-                        <input asp-for="NewOrganization.OrgId" name="OrgId" class="form-control" />
-                        <span asp-validation-for="NewOrganization.OrgId" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="NewOrganization.OrgName" class="form-label"></label>
-                        <input asp-for="NewOrganization.OrgName" name="OrgName" class="form-control" />
-                        <span asp-validation-for="NewOrganization.OrgName" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="NewOrganization.ParentOrgId" class="form-label">上層組織</label>
-                        <select asp-for="NewOrganization.ParentOrgId" name="ParentOrgId" class="form-select">
-                            <option value="">(無)</option>
-                            @foreach (var org in Model.Tree.SelectMany(t => Flatten(t)))
-                            {
-                                <option value="@org.OrgId">@org.OrgId - @org.OrgName</option>
-                            }
-                        </select>
-                        <span asp-validation-for="NewOrganization.ParentOrgId" class="text-danger"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="NewOrganization.OrgLevel" class="form-label">層級</label>
-                        <input asp-for="NewOrganization.OrgLevel" name="OrgLevel" class="form-control" placeholder="若留空將自動計算" />
-                        <span asp-validation-for="NewOrganization.OrgLevel" class="text-danger"></span>
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary">新增組織</button>
-                    </div>
-                </form>
+            <div class="col-md-3 form-check mt-4">
+                <input id="activeOnly" name="activeOnly" value="true" type="checkbox" class="form-check-input" @(Model.Filter.ActiveOnly ? "checked" : "") />
+                <label class="form-check-label" for="activeOnly">只顯示啟用</label>
             </div>
-        </div>
+            <div class="col-md-5 text-end">
+                <button type="submit" class="btn btn-primary me-2">搜尋</button>
+                <a class="btn btn-outline-secondary" asp-action="Index">重設</a>
+            </div>
+        </form>
     </div>
 </div>
 
-@functions {
-    IEnumerable<KpiSys.Web.Models.Organization> Flatten(KpiSys.Web.Models.OrganizationNode node)
-    {
-        yield return node.Node;
-        foreach (var child in node.Children)
-        {
-            foreach (var nested in Flatten(child))
-            {
-                yield return nested;
-            }
-        }
-    }
-}
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        document.querySelectorAll('#org-tree li .toggle').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const list = btn.closest('li').querySelector(':scope > ul');
-                if (list) {
-                    list.classList.toggle('d-none');
+<div class="card shadow-sm">
+    <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <span>組織清單</span>
+        <span class="text-muted small">共 @Model.Items.Count 筆</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>組織代碼</th>
+                    <th>組織名稱</th>
+                    <th>上層組織</th>
+                    <th>層級</th>
+                    <th>成本歸屬代碼</th>
+                    <th>是否啟用</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Items.Count == 0)
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">目前沒有符合條件的組織資料。</td>
+                    </tr>
                 }
-            });
-        });
-    </script>
-}
+                else
+                {
+                    foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>@item.OrgId</td>
+                            <td>@item.OrgName</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.ParentOrgName) ? "-" : item.ParentOrgName)</td>
+                            <td>@(item.OrgLevel?.ToString() ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.PortfolioCode) ? "-" : item.PortfolioCode)</td>
+                            <td>
+                                @if (item.IsActive)
+                                {
+                                    <span class="badge text-bg-success">啟用</span>
+                                }
+                                else
+                                {
+                                    <span class="badge text-bg-secondary">停用</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="Details" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-secondary me-1">檢視</a>
+                                <a asp-action="Edit" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-primary me-1">編輯</a>
+                                <a asp-action="Delete" asp-route-id="@item.OrgId" class="btn btn-sm btn-outline-danger">刪除</a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

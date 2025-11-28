@@ -1,20 +1,20 @@
 @model KpiSys.Web.Models.OrganizationFormViewModel
 @using System.Linq
 @{
-    ViewData["Title"] = "編輯組織";
+    ViewData["Title"] = "新增組織";
     var parents = ViewBag.ParentOrganizations as IEnumerable<KpiSys.Web.Data.Entities.OrganizationEntity> ?? Enumerable.Empty<KpiSys.Web.Data.Entities.OrganizationEntity>();
 }
 
-<h1 class="h3 mb-4">編輯組織</h1>
+<h1 class="h3 mb-4">新增組織</h1>
 
-<form asp-action="Edit" method="post" class="card shadow-sm">
+<form asp-action="Create" method="post" class="card shadow-sm">
     @Html.AntiForgeryToken()
     <div class="card-body">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <div class="row g-3">
             <div class="col-md-6">
                 <label asp-for="OrgId" class="form-label"></label>
-                <input asp-for="OrgId" class="form-control" readonly />
+                <input asp-for="OrgId" class="form-control" />
                 <span asp-validation-for="OrgId" class="text-danger"></span>
             </div>
             <div class="col-md-6">
@@ -28,7 +28,7 @@
                     <option value="">(無)</option>
                     @foreach (var p in parents)
                     {
-                        <option value="@p.OrgId" data-level="@p.OrgLevel" @(p.OrgId == Model.ParentOrgId ? "selected" : string.Empty)>@p.OrgId - @p.OrgName</option>
+                        <option value="@p.OrgId" data-level="@p.OrgLevel">@p.OrgId - @p.OrgName</option>
                     }
                 </select>
                 <span asp-validation-for="ParentOrgId" class="text-danger"></span>

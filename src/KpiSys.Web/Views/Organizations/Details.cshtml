@@ -1,0 +1,52 @@
+@model KpiSys.Web.Models.OrganizationDetailViewModel
+@{
+    ViewData["Title"] = "組織詳細";
+}
+
+<h1 class="h3 mb-4">組織詳細</h1>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">組織代碼</dt>
+            <dd class="col-sm-9">@Model.OrgId</dd>
+
+            <dt class="col-sm-3">組織名稱</dt>
+            <dd class="col-sm-9">@Model.OrgName</dd>
+
+            <dt class="col-sm-3">上層組織</dt>
+            <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.ParentOrgName) ? "-" : Model.ParentOrgName)</dd>
+
+            <dt class="col-sm-3">層級</dt>
+            <dd class="col-sm-9">@(Model.OrgLevel?.ToString() ?? "-")</dd>
+
+            <dt class="col-sm-3">成本歸屬代碼</dt>
+            <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.PortfolioCode) ? "-" : Model.PortfolioCode)</dd>
+
+            <dt class="col-sm-3">是否啟用</dt>
+            <dd class="col-sm-9">
+                @if (Model.IsActive)
+                {
+                    <span class="badge text-bg-success">啟用</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-secondary">停用</span>
+                }
+            </dd>
+
+            <dt class="col-sm-3">直接子組織數量</dt>
+            <dd class="col-sm-9">@Model.DirectChildCount</dd>
+
+            <dt class="col-sm-3">建立時間</dt>
+            <dd class="col-sm-9">@Model.CreatedAt.ToString("yyyy/MM/dd HH:mm")</dd>
+
+            <dt class="col-sm-3">最後更新時間</dt>
+            <dd class="col-sm-9">@(Model.UpdatedAt.HasValue ? Model.UpdatedAt.Value.ToString("yyyy/MM/dd HH:mm") : "-")</dd>
+        </dl>
+    </div>
+    <div class="card-footer bg-white text-end">
+        <a asp-action="Edit" asp-route-id="@Model.OrgId" class="btn btn-primary me-2">編輯</a>
+        <a asp-action="Index" class="btn btn-outline-secondary">返回清單</a>
+    </div>
+</div>

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using KpiSys.Web.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,14 +23,36 @@ namespace KpiSys.Web.Data
             {
                 entity.ToTable("organizations");
                 entity.HasKey(e => e.OrgId);
-                entity.Property(e => e.OrgId).HasColumnName("orgId");
-                entity.Property(e => e.OrgName).HasColumnName("orgName");
-                entity.Property(e => e.ParentOrgId).HasColumnName("parentOrgId");
-                entity.Property(e => e.PortfolioCode).HasColumnName("portfolioCode");
-                entity.Property(e => e.OrgLevel).HasColumnName("orgLevel");
-                entity.Property(e => e.IsActive).HasColumnName("isActive");
-                entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
-                entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+                entity.Property(e => e.OrgId)
+                    .HasColumnName("orgId")
+                    .IsRequired();
+                entity.Property(e => e.OrgName)
+                    .HasMaxLength(100)
+                    .IsRequired()
+                    .HasColumnName("orgName");
+                entity.Property(e => e.ParentOrgId)
+                    .HasColumnName("parentOrgId");
+                entity.Property(e => e.PortfolioCode)
+                    .HasMaxLength(50)
+                    .HasColumnName("portfolioCode");
+                entity.Property(e => e.OrgLevel)
+                    .HasColumnName("orgLevel");
+                entity.Property(e => e.IsActive)
+                    .IsRequired()
+                    .HasColumnName("isActive");
+                entity.Property(e => e.CreatedAt)
+                    .IsRequired()
+                    .HasColumnName("createdAt");
+                entity.Property(e => e.UpdatedAt)
+                    .HasColumnName("updatedAt");
+
+                entity.HasOne(e => e.Parent)
+                    .WithMany(e => e.Children)
+                    .HasForeignKey(e => e.ParentOrgId)
+                    .HasPrincipalKey(e => e.OrgId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasData(SeedOrganizations());
             });
 
             modelBuilder.Entity<EmployeeEntity>(entity =>
@@ -71,6 +95,29 @@ namespace KpiSys.Web.Data
                     .HasForeignKey(e => e.EmployeeId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+        }
+
+        private static IEnumerable<OrganizationEntity> SeedOrganizations()
+        {
+            var createdAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            return new List<OrganizationEntity>
+            {
+                new() { OrgId = "QTB", OrgName = "元信達資訊", OrgLevel = 1, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_001", OrgName = "應用系統開發部", ParentOrgId = "QTB", OrgLevel = 2, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_001_001", OrgName = "應用系統開發部 一組", ParentOrgId = "QTB_001", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_001_002", OrgName = "應用系統開發部 二組", ParentOrgId = "QTB_001", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_001_003", OrgName = "應用系統開發部 三組", ParentOrgId = "QTB_001", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_002", OrgName = "營運數據系統部", ParentOrgId = "QTB", OrgLevel = 2, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_002_001", OrgName = "營運數據系統部 一組", ParentOrgId = "QTB_002", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_002_002", OrgName = "營運數據系統部 二組", ParentOrgId = "QTB_002", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_002_003", OrgName = "營運數據系統部 三組", ParentOrgId = "QTB_002", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_003", OrgName = "創新專案管理", ParentOrgId = "QTB", OrgLevel = 2, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_004", OrgName = "資訊安全部", ParentOrgId = "QTB", OrgLevel = 2, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_004_001", OrgName = "資訊安全部 一組", ParentOrgId = "QTB_004", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_004_002", OrgName = "資訊安全部 二組", ParentOrgId = "QTB_004", OrgLevel = 3, IsActive = true, CreatedAt = createdAt },
+                new() { OrgId = "QTB_004_003", OrgName = "資訊安全部 三組", ParentOrgId = "QTB_004", OrgLevel = 3, IsActive = true, CreatedAt = createdAt }
+            };
         }
     }
 }
