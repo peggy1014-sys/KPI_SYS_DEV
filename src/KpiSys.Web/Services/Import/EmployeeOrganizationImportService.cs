@@ -305,6 +305,8 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             throw new InvalidOperationException("Employee department column not found in header row.");
         }
 
+        _logger.LogInformation("Using {DepartmentColumn} as employee department column.", deptHeader);
+
         var dataRows = worksheet.RowsUsed().Skip(1).ToList();
         result.Read = dataRows.Count;
 
@@ -333,47 +335,54 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
             }
 
             var normalizedStatus = string.IsNullOrWhiteSpace(status) ? "active" : status.Trim().ToLowerInvariant();
-
-            var employee = new Employee
-            {
-                EmployeeId = Guid.NewGuid().ToString(),
-                EmployeeNo = employeeNo.Trim(),
-                Name = name.Trim(),
-                Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
-                OrgId = orgId,
-                Title = string.IsNullOrWhiteSpace(title) ? "未指定" : title.Trim(),
-                Status = normalizedStatus,
-                SupervisorId = null,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = null
-            };
-
+            var normalizedTitle = string.IsNullOrWhiteSpace(title) ? "未指定" : title.Trim();
+            var trimmedEmployeeNo = employeeNo.Trim();
+            var trimmedName = name.Trim();
             var existing = _employeeService
                 .GetAll()
-                .FirstOrDefault(e => e.EmployeeNo.Equals(employee.EmployeeNo, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(e => e.EmployeeNo.Equals(trimmedEmployeeNo, StringComparison.OrdinalIgnoreCase));
 
+            Employee target;
             if (existing == null)
             {
+                var employee = new Employee
+                {
+                    EmployeeId = Guid.NewGuid().ToString(),
+                    EmployeeNo = trimmedEmployeeNo,
+                    Name = trimmedName,
+                    Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
+                    OrgId = orgId,
+                    Title = normalizedTitle,
+                    Status = normalizedStatus,
+                    SupervisorId = null,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = null
+                };
+
                 var createResult = _employeeService.Create(employee);
                 if (!createResult.success)
                 {
-                    _logger.LogWarning("Failed to create employee {EmployeeNo}: {Error}", employee.EmployeeNo, createResult.error);
+                    _logger.LogWarning("Failed to create employee {EmployeeNo} ({Name}): {Error}", trimmedEmployeeNo, trimmedName, createResult.error);
                     result.Skipped++;
                     continue;
                 }
+
+                target = _employeeService
+                    .GetAll()
+                    .First(e => e.EmployeeNo.Equals(trimmedEmployeeNo, StringComparison.OrdinalIgnoreCase));
                 result.Created++;
             }
             else
             {
                 var updatePayload = new Employee
                 {
-                    EmployeeId = existing.EmployeeId,
-                    EmployeeNo = employee.EmployeeNo,
-                    Name = employee.Name,
-                    Email = employee.Email,
-                    OrgId = employee.OrgId,
-                    Title = employee.Title,
-                    Status = employee.Status,
+                    EmployeeId = string.IsNullOrWhiteSpace(existing.EmployeeId) ? Guid.NewGuid().ToString() : existing.EmployeeId,
+                    EmployeeNo = trimmedEmployeeNo,
+                    Name = trimmedName,
+                    Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
+                    OrgId = orgId,
+                    Title = normalizedTitle,
+                    Status = normalizedStatus,
                     SupervisorId = existing.SupervisorId,
                     CreatedAt = existing.CreatedAt,
                     UpdatedAt = DateTime.UtcNow
@@ -382,46 +391,37 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
                 var updateResult = _employeeService.Update(existing.Id, updatePayload);
                 if (!updateResult.success)
                 {
-                    _logger.LogWarning("Failed to update employee {EmployeeNo}: {Error}", employee.EmployeeNo, updateResult.error);
+                    _logger.LogWarning("Failed to update employee {EmployeeNo} ({Name}): {Error}", trimmedEmployeeNo, trimmedName, updateResult.error);
                     result.Skipped++;
                     continue;
                 }
+
+                target = _employeeService
+                    .GetAll()
+                    .First(e => e.EmployeeNo.Equals(trimmedEmployeeNo, StringComparison.OrdinalIgnoreCase));
                 result.Updated++;
-            }
-
-            var target = _employeeService
-                .GetAll()
-                .FirstOrDefault(e => e.EmployeeNo.Equals(employee.EmployeeNo, StringComparison.OrdinalIgnoreCase));
-
-            if (target == null)
-            {
-                result.Skipped++;
-                continue;
             }
 
             if (string.IsNullOrWhiteSpace(rolesRaw))
             {
-                result.EmptyRoles++;
-                _logger.LogInformation("Employee {EmployeeNo} has no role assignments in source data.", employee.EmployeeNo);
+                _logger.LogInformation("Employee {EmployeeNo} has no role assignments in source data.", trimmedEmployeeNo);
                 continue;
             }
 
-            ProcessRoles(target.Id, employee.EmployeeNo, employee.Name, rolesRaw, result);
+            ProcessRoles(target.Id, trimmedEmployeeNo, trimmedName, rolesRaw, result);
         }
 
         _logger.LogInformation(
-            "Employee import summary: scanned {Scanned}, inserted {Inserted}, updated {Updated}, skipped {Skipped}, employees with empty roles: {EmptyRoles}.",
+            "Employee import summary: scanned {Scanned}, inserted {Inserted}, updated {Updated}, skipped {Skipped}.",
             result.Read,
             result.Created,
             result.Updated,
-            result.Skipped,
-            result.EmptyRoles);
+            result.Skipped);
 
         _logger.LogInformation(
-            "Employee roles import summary: created {Created}, skipped {Skipped}, invalid {Invalid}.",
+            "Employee roles import summary: created {Created}, skipped {Skipped} (existing or invalid).",
             result.RolesCreated,
-            result.RolesSkipped,
-            result.RolesInvalid);
+            result.RolesSkipped + result.RolesInvalid);
 
         return result;
     }
@@ -436,7 +436,6 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
         if (roleTokens.Count == 0)
         {
-            result.EmptyRoles++;
             return;
         }
 
@@ -454,7 +453,12 @@ public class EmployeeOrganizationImportService : IEmployeeOrganizationImportServ
 
             if (!ValidRoleCodes.Contains(normalized))
             {
-                _logger.LogWarning("Invalid role '{Role}' for employee {EmployeeNo} ({EmployeeName}). Skipping role.", token, employeeNo, employeeName);
+                _logger.LogWarning(
+                    "Invalid role '{Role}' for employee {EmployeeNo} ({EmployeeName}) in source value '{RawRoles}'. Skipping role.",
+                    token,
+                    employeeNo,
+                    employeeName,
+                    rolesRaw);
                 result.RolesInvalid++;
                 continue;
             }
